@@ -1,97 +1,177 @@
 const express = require('express');
 const session = require('express-session');
 const { Issuer, generators } = require('openid-client');
+
 const app = express();
 
+const port = Number(process.env.PORT || 3000);
+const baseUrl = (process.env.BASE_URL || `http://localhost:${port}`).replace(/\/$/, '');
+const redirectUri = `${baseUrl}/callback`;
+const sessionSecret = process.env.SESSION_SECRET || 'dev-only-change-me';
+
+const requiredEnvVars = [
+    'COGNITO_ISSUER',
+    'COGNITO_CLIENT_ID',
+    'COGNITO_DOMAIN',
+];
+
+const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]);
+
+if (missingEnvVars.length > 0) {
+    console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    console.error('Set them before starting the app.');
+    process.exit(1);
+}
+
 app.use(session({
-    secret: 'some secret',
+    secret: sessionSecret,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: baseUrl.startsWith('https://'),
+    },
 }));
 
 app.set('view engine', 'ejs');
 
 let client;
-// Initialize OpenID Client
-async function initializeClient() {
-    const issuer = await Issuer.discover('https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_iOq9ypzvG');
-    client = new issuer.Client({
-        client_id: '6mat78qbkg53ikbrmde7a8416l',
-        client_secret: '<client secret>',
-        redirect_uris: ['https://d84l1y8p4kdic.cloudfront.net'],
-        response_types: ['code']
-    });
-};
-initializeClient().catch(console.error);
 
-const checkAuth = (req, res, next) => {
-    if (!req.session.userInfo) {
-        req.isAuthenticated = false;
+async function initializeClient() {
+    const issuer = await Issuer.discover(process.env.COGNITO_ISSUER);
+    const clientConfig = {
+        client_id: process.env.COGNITO_CLIENT_ID,
+        redirect_uris: [redirectUri],
+        response_types: ['code'],
+    };
+
+    if (process.env.COGNITO_CLIENT_SECRET) {
+        clientConfig.client_secret = process.env.COGNITO_CLIENT_SECRET;
     } else {
-        req.isAuthenticated = true;
+        clientConfig.token_endpoint_auth_method = 'none';
     }
+
+    client = new issuer.Client(clientConfig);
+}
+
+function checkAuth(req, res, next) {
+    req.isAuthenticated = Boolean(req.session.userInfo);
     next();
-};
+}
 
 app.get('/', checkAuth, (req, res) => {
     res.render('home', {
         isAuthenticated: req.isAuthenticated,
-        userInfo: req.session.userInfo
+        userInfo: req.session.userInfo,
+        error: null,
+        baseUrl,
+        redirectUri,
     });
 });
 
-app.get('/login', (req, res) => {
-    const nonce = generators.nonce();
-    const state = generators.state();
-
-    req.session.nonce = nonce;
-    req.session.state = state;
-
-    const authUrl = client.authorizationUrl({
-        scope: 'phone openid email',
-        state: state,
-        nonce: nonce,
-    });
-
-    res.redirect(authUrl);
-});
-
-// Helper function to get the path from the URL. Example: "http://localhost/hello" returns "/hello"
-function getPathFromURL(urlString) {
+app.get('/login', (req, res, next) => {
     try {
-        const url = new URL(urlString);
-        return url.pathname;
+        if (!client) {
+            throw new Error('OIDC client is not initialized yet.');
+        }
+
+        const nonce = generators.nonce();
+        const state = generators.state();
+        const codeVerifier = generators.codeVerifier();
+        const codeChallenge = generators.codeChallenge(codeVerifier);
+
+        req.session.nonce = nonce;
+        req.session.state = state;
+        req.session.codeVerifier = codeVerifier;
+
+        const authUrl = client.authorizationUrl({
+            scope: 'openid email profile',
+            state,
+            nonce,
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256',
+        });
+
+        res.redirect(authUrl);
     } catch (error) {
-        console.error('Invalid URL:', error);
-        return null;
+        next(error);
     }
-}
+});
 
-app.get(getPathFromURL('https://d84l1y8p4kdic.cloudfront.net'), async (req, res) => {
+app.get('/callback', async (req, res, next) => {
     try {
+        if (!client) {
+            throw new Error('OIDC client is not initialized yet.');
+        }
+
         const params = client.callbackParams(req);
         const tokenSet = await client.callback(
-            'https://d84l1y8p4kdic.cloudfront.net',
+            redirectUri,
             params,
             {
                 nonce: req.session.nonce,
-                state: req.session.state
+                state: req.session.state,
+                code_verifier: req.session.codeVerifier,
             }
         );
 
         const userInfo = await client.userinfo(tokenSet.access_token);
+
         req.session.userInfo = userInfo;
+        req.session.tokenSet = tokenSet;
+        delete req.session.nonce;
+        delete req.session.state;
+        delete req.session.codeVerifier;
 
         res.redirect('/');
-    } catch (err) {
-        console.error('Callback error:', err);
-        res.redirect('/');
+    } catch (error) {
+        next(error);
     }
 });
 
-// Logout route
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    const logoutUrl = `https://<user pool domain>/logout?client_id=6mat78qbkg53ikbrmde7a8416l&logout_uri=<logout uri>`;
-    res.redirect(logoutUrl);
+app.get('/logout', (req, res, next) => {
+    req.session.destroy((error) => {
+        if (error) {
+            next(error);
+            return;
+        }
+
+        const logoutUrl = new URL(`https://${process.env.COGNITO_DOMAIN.replace(/^https?:\/\//, '')}/logout`);
+        logoutUrl.searchParams.set('client_id', process.env.COGNITO_CLIENT_ID);
+        logoutUrl.searchParams.set('logout_uri', baseUrl);
+        res.redirect(logoutUrl.toString());
+    });
 });
+
+app.use((error, req, res, next) => {
+    console.error(error);
+
+    if (res.headersSent) {
+        next(error);
+        return;
+    }
+
+    res.status(500).render('home', {
+        isAuthenticated: false,
+        userInfo: null,
+        error: error.message,
+        baseUrl,
+        redirectUri,
+    });
+});
+
+async function start() {
+    try {
+        await initializeClient();
+        app.listen(port, () => {
+            console.log(`App listening on ${baseUrl}`);
+            console.log(`OIDC callback URL: ${redirectUri}`);
+        });
+    } catch (error) {
+        console.error('Failed to start app:', error);
+        process.exit(1);
+    }
+}
+
+start();

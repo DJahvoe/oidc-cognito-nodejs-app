@@ -8,15 +8,21 @@
 <div>
     <h1>Amazon Cognito User Pool Demo</h1>
 
+    <% if (error) { %>
+        <p style="color: red;">Authentication error: <%= error %></p>
+    <% } %>
+
     <% if (isAuthenticated) { %>
         <div>
             <h2>Welcome, <%= userInfo.username || userInfo.email %></h2>
             <p>Here are some attributes you can use as a developer:</p>
-            <p><%= JSON.stringify(userInfo, null, 4) %></p>
+            <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
         </div>
         <a href="/logout">Logout</a>
     <% } else { %>
         <p>Please log in to continue</p>
+        <p><strong>Base URL:</strong> <%= baseUrl %></p>
+        <p><strong>Callback URL to register in Cognito:</strong> <%= redirectUri %></p>
         <a href="/login">Login</a>
     <% } %>
 </div>
