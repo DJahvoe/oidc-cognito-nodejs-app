@@ -2,9 +2,11 @@
   "name": "node",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "app1/server.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app1/server.js",
+    "start:app1": "node app1/server.js",
+    "start:app2": "node app2/server.js"
   },
   "author": "",
   "license": "ISC",

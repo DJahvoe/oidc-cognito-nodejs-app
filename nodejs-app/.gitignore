@@ -1,2 +1,4 @@
 /node_modules
 .env
+app1/.env
+app2/.env
