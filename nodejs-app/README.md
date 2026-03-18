@@ -26,10 +26,12 @@ $env:SESSION_SECRET="replace-this"
 $env:COGNITO_ISSUER="https://cognito-idp.ap-northeast-1.amazonaws.com/<user-pool-id>"
 $env:COGNITO_CLIENT_ID="<app-client-id>"
 $env:COGNITO_CLIENT_SECRET="<app-client-secret>"
+$env:COGNITO_SCOPES="openid email profile"
 $env:COGNITO_DOMAIN="<your-domain>.auth.ap-northeast-1.amazoncognito.com"
 ```
 
 If your Cognito app client does not use a secret, leave `COGNITO_CLIENT_SECRET` unset.
+If your Cognito app client allows `phone` instead of `profile`, set `COGNITO_SCOPES="openid email phone"`.
 
 ## 3. Run the app
 
@@ -45,11 +47,11 @@ Open `http://localhost:3000`, click `Login`, and complete the Cognito sign-in fl
 
 When `app.js` starts, it:
 
-- Loads values from `.env`
+- Loads values from `.env` in `config.js`
 - Builds `BASE_URL`, for example `http://localhost:3000`
 - Builds `redirectUri` as `BASE_URL/callback`
 - Creates an Express session for storing login state
-- Uses `Issuer.discover(COGNITO_ISSUER)` to read Cognito's OIDC metadata
+- Uses `Issuer.discover(COGNITO_ISSUER)` in `oidc-client.js` to read Cognito's OIDC metadata
 - Creates an OpenID Connect client with your app client ID and optional secret
 
 The `COGNITO_ISSUER` is the User Pool issuer URL, for example:
@@ -138,3 +140,10 @@ When the user opens `/logout`, the app:
 - `/login` starts the OIDC authorization code flow
 - `/callback` finishes the OIDC flow after Cognito redirects back
 - `/logout` clears the local session and logs out from Cognito Hosted UI
+
+## 5. File layout
+
+- `app.js`: app startup, sessions, home route, and shared error handling
+- `config.js`: `.env` loading and app configuration
+- `oidc-client.js`: Cognito client creation and logout URL generation
+- `auth-routes.js`: `/login`, `/callback`, and `/logout`
