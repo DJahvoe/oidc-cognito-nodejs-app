@@ -89,6 +89,7 @@ async function initializeClient() {
     }
 
     client = new issuer.Client(clientConfig);
+    console.log(client);
 }
 
 function checkAuth(req, res, next) {
@@ -122,7 +123,7 @@ app.get('/login', (req, res, next) => {
         req.session.codeVerifier = codeVerifier;
 
         const authUrl = client.authorizationUrl({
-            scope: 'openid email profile',
+            scope: 'openid email phone',
             state,
             nonce,
             code_challenge: codeChallenge,
