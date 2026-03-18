@@ -1,30 +1,337 @@
-<!-- views/home.ejs -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Amazon Cognito authentication with Node example</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appInfo.name %> | Cognito SSO Demo</title>
+    <style>
+        :root {
+            --shell-bg: <%= theme.shellBackground %>;
+            --panel-bg: <%= theme.panelBackground %>;
+            --panel-border: <%= theme.panelBorder %>;
+            --accent: <%= theme.accent %>;
+            --accent-soft: <%= theme.accentSoft %>;
+            --text: <%= theme.text %>;
+            --muted: <%= theme.muted %>;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background: var(--shell-bg);
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .page {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+
+        .hero {
+            background: rgba(255, 255, 255, 0.46);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 28px;
+            padding: 28px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        }
+
+        .hero-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .hero h1 {
+            margin: 12px 0 8px;
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            line-height: 1.02;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .hero p {
+            max-width: 700px;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .nav-link,
+        .cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 16px;
+            border-radius: 999px;
+            border: 1px solid var(--panel-border);
+            background: rgba(255, 255, 255, 0.74);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .nav-link:hover,
+        .cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .nav-link.current {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            font-weight: 700;
+        }
+
+        .cta.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            font-weight: 700;
+        }
+
+        .cta.secondary {
+            background: transparent;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            padding: 22px;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+        }
+
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 1.2rem;
+        }
+
+        .panel p,
+        .panel li {
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .kpi {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .kpi strong {
+            display: block;
+            color: var(--text);
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.95rem;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .callout {
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .error {
+            margin-top: 16px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #fff0ec;
+            border: 1px solid #e7b6a8;
+            color: #8a2b12;
+        }
+
+        pre {
+            margin: 0;
+            padding: 18px;
+            border-radius: 18px;
+            background: #172026;
+            color: #f1f5f9;
+            overflow: auto;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                width: min(100% - 20px, 1100px);
+                padding-top: 20px;
+            }
+
+            .hero,
+            .panel {
+                padding: 18px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div>
-    <h1>Amazon Cognito User Pool Demo</h1>
+    <div class="page">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <span class="eyebrow"><%= appInfo.name %> Active</span>
+                    <h1>Cognito SSO across App 1 and App 2</h1>
+                    <p><%= appInfo.tagline %>. Both apps should use the same Cognito User Pool and Hosted UI domain, but different App Client IDs. After signing in once, open the other app and click Login to see single sign-on in action.</p>
+                </div>
+                <nav class="nav" aria-label="App switcher">
+                    <% navigationApps.forEach((navApp) => { %>
+                        <a class="nav-link <%= navApp.isCurrent ? 'current' : '' %>" href="<%= navApp.url %>"><%= navApp.name %></a>
+                    <% }) %>
+                </nav>
+            </div>
 
-    <% if (error) { %>
-        <p style="color: red;">Authentication error: <%= error %></p>
-    <% } %>
+            <% if (error) { %>
+                <div class="error">
+                    <strong>Authentication error</strong>
+                    <div class="mono"><%= error %></div>
+                </div>
+            <% } %>
+        </section>
 
-    <% if (isAuthenticated) { %>
-        <div>
-            <h2>Welcome, <%= userInfo.username || userInfo.email %></h2>
-            <p>Here are some attributes you can use as a developer:</p>
-            <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
-        </div>
-        <a href="/logout">Logout</a>
-    <% } else { %>
-        <p>Please log in to continue</p>
-        <p><strong>Base URL:</strong> <%= baseUrl %></p>
-        <p><strong>Callback URL to register in Cognito:</strong> <%= redirectUri %></p>
-        <a href="/login">Login</a>
-    <% } %>
-</div>
+        <section class="grid">
+            <article class="panel">
+                <h2>Current App</h2>
+                <div class="kpis">
+                    <div class="kpi">
+                        <strong>Base URL</strong>
+                        <div class="mono"><%= appInfo.baseUrl %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Callback URL</strong>
+                        <div class="mono"><%= appInfo.redirectUri %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>App Client ID</strong>
+                        <div class="mono"><%= appInfo.clientId %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Scopes</strong>
+                        <div class="mono"><%= appInfo.scopes %></div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <% if (isAuthenticated) { %>
+                        <a class="cta primary" href="/logout">Logout from <%= appInfo.name %></a>
+                    <% } else { %>
+                        <a class="cta primary" href="/login">Login with Cognito</a>
+                    <% } %>
+
+                    <% otherApps.forEach((otherApp) => { %>
+                        <a class="cta secondary" href="<%= otherApp.url %>">Open <%= otherApp.name %></a>
+                    <% }) %>
+                </div>
+
+                <div class="callout">
+                    <% if (isAuthenticated) { %>
+                        You already have a local session in <strong><%= appInfo.name %></strong>. Open the other app from the menu and click <strong>Login with Cognito</strong>. Cognito should reuse the Hosted UI session and return immediately.
+                    <% } else { %>
+                        Start by signing in here. Then switch to the other app from the menu and click <strong>Login with Cognito</strong>. If both apps use the same User Pool and Hosted UI domain, you should not be asked for credentials again.
+                    <% } %>
+                </div>
+            </article>
+
+            <article class="panel">
+                <h2>What SSO Means Here</h2>
+                <ul>
+                    <li>Each Express app keeps its own local session.</li>
+                    <li>Cognito Hosted UI keeps the shared login session that enables SSO.</li>
+                    <li>Signing in on App 1 does not automatically sign in App 2 until App 2 redirects to Cognito.</li>
+                    <li>Once App 2 redirects to Cognito, Cognito can reuse the existing session and return with a new authorization code for App 2.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Authentication State</h2>
+                <% if (isAuthenticated) { %>
+                    <p>The local session for <strong><%= appInfo.name %></strong> is active. These claims came from Cognito:</p>
+                    <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
+                <% } else { %>
+                    <p>No local session is active in this app yet.</p>
+                    <p>That is expected before the first login, or after you log out from this app.</p>
+                <% } %>
+            </article>
+
+            <article class="panel">
+                <h2>Suggested Demo Flow</h2>
+                <ol>
+                    <li>Run <span class="mono">npm run start:app1</span> and <span class="mono">npm run start:app2</span> in separate terminals.</li>
+                    <li>Open App 1 and click <strong>Login with Cognito</strong>.</li>
+                    <li>After you return authenticated, use the top menu to open App 2.</li>
+                    <li>In App 2, click <strong>Login with Cognito</strong> again.</li>
+                    <li>Cognito should reuse the Hosted UI session and send you back without prompting for credentials.</li>
+                </ol>
+            </article>
+        </section>
+    </div>
 </body>
 </html>

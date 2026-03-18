@@ -1,110 +1,141 @@
-# Simple Cognito OIDC App
+# Cognito SSO Demo with App 1 and App 2
 
-This app uses Express, server-side sessions, and `openid-client` with the authorization code flow.
+This project now contains two separate Express apps:
 
-## 1. Cognito setup
+- `App 1` on `http://localhost:3000`
+- `App 2` on `http://localhost:4000`
 
-Create or use an existing Cognito User Pool, then configure:
+Both apps use:
 
-- A User Pool app client
-- A Cognito hosted UI domain or custom domain
-- Allowed callback URL: `http://localhost:3000/callback`
-- Allowed sign-out URL: `http://localhost:3000`
-- OAuth grant type: `Authorization code grant`
-- OAuth scopes: at least `openid`, `email`, `profile`
+- the same Cognito User Pool
+- the same Cognito Hosted UI domain
+- the same Cognito issuer
 
-## 2. Required environment variables
+Each app should use its own Cognito App Client. That is the recommended setup for SSO across multiple applications.
 
-Create `.env` from `.env.example` and fill in your Cognito values.
+## Project layout
 
-You can still set the same values in PowerShell if you prefer:
+- `app1/server.js`: starts App 1
+- `app2/server.js`: starts App 2
+- `app1/.env.example`: sample config for App 1
+- `app2/.env.example`: sample config for App 2
+- `config.js`: loads app-specific `.env` files and builds runtime config
+- `auth-routes.js`: shared `/login`, `/callback`, and `/logout` routes
+- `oidc-client.js`: shared OIDC discovery and logout URL logic
+- `server-factory.js`: shared Express server setup
+- `views/home.ejs`: shared UI used by both apps
 
-```powershell
-$env:PORT="3000"
-$env:BASE_URL="http://localhost:3000"
-$env:SESSION_SECRET="replace-this"
-$env:COGNITO_ISSUER="https://cognito-idp.ap-northeast-1.amazonaws.com/<user-pool-id>"
-$env:COGNITO_CLIENT_ID="<app-client-id>"
-$env:COGNITO_CLIENT_SECRET="<app-client-secret>"
-$env:COGNITO_DOMAIN="<your-domain>.auth.ap-northeast-1.amazoncognito.com"
-```
+## What App Client means in this demo
 
-If your Cognito app client does not use a secret, leave `COGNITO_CLIENT_SECRET` unset.
+There are two different things involved:
 
-## 3. Run the app
-
-```powershell
-npm start
-```
-
-Open `http://localhost:3000`, click `Login`, and complete the Cognito sign-in flow.
-
-## 4. How the code works
-
-### App Client vs this Node app
-
-There are two different "clients" involved in this project:
-
-- The **Cognito App Client** is the application record you create inside your Cognito User Pool in AWS
-- The **Node app** is your Express server in this repository
+- The **Cognito App Client** is configured in AWS Cognito
+- The **Node app** is the Express server in this repository
 
 The Cognito App Client in AWS defines:
 
-- which callback URLs are allowed
-- which logout URLs are allowed
-- which OAuth flow is allowed
-- which scopes are allowed
+- allowed callback URLs
+- allowed sign-out URLs
+- allowed OAuth flow
+- allowed scopes
 - whether a client secret is required
 
-This Node app uses those Cognito App Client settings through these environment variables:
+The Node app reads those settings from `.env` and uses them at runtime.
 
-- `COGNITO_CLIENT_ID` maps to the Cognito App Client ID
-- `COGNITO_CLIENT_SECRET` maps to the Cognito App Client secret, if that app client has one
-- `COGNITO_ISSUER` tells the Node app which User Pool to talk to
-- `COGNITO_DOMAIN` tells the Node app which Hosted UI domain to use for logout
+Example mapping:
 
-So the AWS side stores the registration and rules, while the Node app reads those values and follows those rules at runtime.
+- `COGNITO_CLIENT_ID` = Cognito App Client ID for that app
+- `COGNITO_CLIENT_SECRET` = Cognito App Client secret for that app, if used
+- `COGNITO_ISSUER` = User Pool issuer URL
+- `COGNITO_DOMAIN` = Hosted UI domain
 
-### Startup
+## Recommended Cognito setup
 
-When `app.js` starts, it:
+Use one User Pool and create two App Clients inside it:
 
-- Loads values from `.env`
-- Builds `BASE_URL`, for example `http://localhost:3000`
-- Builds `redirectUri` as `BASE_URL/callback`
-- Creates an Express session for storing login state
-- Uses `Issuer.discover(COGNITO_ISSUER)` to read Cognito's OIDC metadata
-- Creates an OpenID Connect client with your app client ID and optional secret
+- `App 1 Client`
+- `App 2 Client`
 
-The `COGNITO_ISSUER` is the User Pool issuer URL, for example:
+Both App Clients should use the same:
 
-```text
-https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxx
+- User Pool
+- Hosted UI domain
+- identity providers
+
+But each App Client should have its own callback and sign-out URLs.
+
+### App 1 Cognito settings
+
+- Callback URL: `http://localhost:3000/callback`
+- Sign-out URL: `http://localhost:3000`
+- OAuth flow: `Authorization code grant`
+- Scopes: `openid email profile`
+
+### App 2 Cognito settings
+
+- Callback URL: `http://localhost:4000/callback`
+- Sign-out URL: `http://localhost:4000`
+- OAuth flow: `Authorization code grant`
+- Scopes: `openid email profile`
+
+## Environment files
+
+Create these files:
+
+- `app1/.env`
+- `app2/.env`
+
+Start from the provided examples:
+
+- `app1/.env.example`
+- `app2/.env.example`
+
+### Example for App 1
+
+```env
+PORT=3000
+BASE_URL=http://localhost:3000
+SESSION_SECRET=replace-with-a-long-random-string-for-app1
+COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxxx
+COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
+COGNITO_CLIENT_ID=your-app1-client-id
+COGNITO_CLIENT_SECRET=your-app1-client-secret
+COGNITO_SCOPES=openid email profile
+APP1_URL=http://localhost:3000
+APP2_URL=http://localhost:4000
 ```
 
-The `COGNITO_DOMAIN` is the Hosted UI domain, for example:
+### Example for App 2
 
-```text
-your-domain.auth.ap-northeast-1.amazoncognito.com
+```env
+PORT=4000
+BASE_URL=http://localhost:4000
+SESSION_SECRET=replace-with-a-long-random-string-for-app2
+COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxxx
+COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
+COGNITO_CLIENT_ID=your-app2-client-id
+COGNITO_CLIENT_SECRET=your-app2-client-secret
+COGNITO_SCOPES=openid email profile
+APP1_URL=http://localhost:3000
+APP2_URL=http://localhost:4000
 ```
 
-### How the Node app and Cognito App Client interact
+Important:
 
-At startup, the Node app creates an OpenID Connect client using your Cognito App Client ID and optional secret.
+- `COGNITO_ISSUER` should be the same in both apps
+- `COGNITO_DOMAIN` should be the same in both apps
+- `COGNITO_CLIENT_ID` should be different for App 1 and App 2
+- `COGNITO_CLIENT_SECRET` should match each app's own App Client
 
-That means:
+## How App 1 and App 2 interact with Cognito
 
-- Cognito already knows your app because you registered an App Client in AWS
-- Your Node app proves which App Client it is by sending `client_id`
-- If your App Client uses a secret, your Node app also sends `client_secret` when exchanging the authorization code for tokens
+The SSO flow is split into two phases.
 
-The interaction is split into two main phases.
+### Phase 1: Authorization request
 
-#### Phase 1: Authorization request
+When you click `Login with Cognito` in App 1 or App 2, the app redirects the browser to Cognito Hosted UI.
 
-When the user clicks `Login`, the Node app redirects the browser to Cognito Hosted UI.
-
-In that redirect, the Node app sends values such as:
+That redirect includes values like:
 
 - `client_id`
 - `redirect_uri`
@@ -114,21 +145,15 @@ In that redirect, the Node app sends values such as:
 - `nonce`
 - PKCE `code_challenge`
 
-Cognito checks those values against the App Client configuration in AWS.
+Cognito checks those values against the App Client configured in AWS.
 
-Examples:
+If they match, Cognito accepts the request and signs the user in.
 
-- If `redirect_uri` is not listed in the App Client callback URLs, Cognito rejects the request
-- If the App Client does not allow authorization code flow, Cognito rejects the request
-- If the requested scopes are not allowed, Cognito rejects the request
-
-If everything matches, Cognito authenticates the user and redirects the browser back to your Node app with an authorization code.
-
-#### Phase 2: Token exchange
+### Phase 2: Token exchange
 
 After Cognito redirects back to `/callback`, the Node app sends the authorization code to Cognito's token endpoint.
 
-In that back-channel request, the Node app sends:
+That back-channel request includes:
 
 - `client_id`
 - `client_secret` if required
@@ -136,112 +161,97 @@ In that back-channel request, the Node app sends:
 - `redirect_uri`
 - PKCE `code_verifier`
 
-Cognito validates:
+Cognito validates the request and returns tokens for that specific app.
 
-- the code was issued for this App Client
-- the callback URL matches the App Client configuration
-- the client secret is correct, if used
-- the PKCE verifier matches the earlier challenge
+## Why SSO works
 
-If validation succeeds, Cognito returns tokens.
+Each Express app has its own local session.
 
-The Node app then:
+That means:
 
-- verifies the OIDC response using `state` and `nonce`
-- stores the token response in the session
-- optionally calls the `userinfo` endpoint using the `access_token`
+- logging into App 1 creates a local session only in App 1
+- App 2 is still locally logged out until it performs its own login flow
 
-So the important boundary is:
+SSO works because Cognito Hosted UI has its own session cookie.
 
-- the browser handles the front-channel redirect between your app and Cognito Hosted UI
-- the Node app handles the secure server-to-server token exchange with Cognito
+So after this sequence:
 
-#### Why the App Client settings matter
+1. You log in on App 1
+2. Cognito stores the hosted UI session
+3. You open App 2
+4. App 2 redirects to the same Cognito Hosted UI domain
 
-If the AWS App Client settings do not match what this Node app sends, the flow fails.
+Cognito sees the existing hosted UI session and can authenticate you again without asking for credentials.
 
-Common examples:
+That is the shared SSO layer.
 
-- callback URL mismatch
-- sign-out URL mismatch
-- wrong App Client ID
-- secret configured in Cognito but missing in `.env`
-- authorization code flow not enabled
-- required scope not enabled
+## How to run the demo
 
-This is why the AWS Cognito configuration and the values in `.env` must describe the same App Client.
+Use two terminals.
 
-### Session
+### Terminal 1
 
-This app keeps auth state in the server session.
-
-Before login completes, the session stores temporary values:
-
-- `state`
-- `nonce`
-- `codeVerifier`
-
-After login completes, the session stores:
-
-- `userInfo`
-- `tokenSet`
-
-That means the browser does not need to manage tokens directly for this sample app.
-
-### Login flow
-
-1. The user opens `/`
-2. The app checks whether `req.session.userInfo` exists
-3. If not logged in, the page shows a `Login` link
-4. When the user opens `/login`, the app generates:
-   - `state`
-   - `nonce`
-   - `codeVerifier`
-5. The app creates a PKCE `codeChallenge` from the `codeVerifier`
-6. The app stores those values in the session
-7. The app redirects the browser to Cognito Hosted UI
-
-These values are important:
-
-- `state` protects against CSRF and callback tampering
-- `nonce` protects against token replay and token substitution
-- `codeVerifier` and `codeChallenge` are PKCE values used to protect the authorization code exchange
-
-### Callback flow
-
-After the user signs in on Cognito, Cognito redirects the browser back to:
-
-```text
-http://localhost:3000/callback
+```powershell
+npm run start:app1
 ```
 
-The app then:
+### Terminal 2
 
-1. Reads the `code` and `state` query parameters from the request
-2. Calls `client.callback(...)`
-3. Sends the authorization code to Cognito's token endpoint
-4. Verifies the response using the stored `state`, `nonce`, and `codeVerifier`
-5. Receives a `tokenSet`
-6. Calls `client.userinfo(access_token)` to fetch the user's claims
-7. Stores the result in `req.session.userInfo`
-8. Redirects the user back to `/`
+```powershell
+npm run start:app2
+```
 
-Once `req.session.userInfo` exists, the home page treats the user as authenticated.
+Then open:
 
-### Logout flow
+- App 1: `http://localhost:3000`
+- App 2: `http://localhost:4000`
 
-When the user opens `/logout`, the app:
+## How to test SSO
 
-1. Destroys the local Express session
-2. Redirects the browser to Cognito's `/logout` endpoint
-3. Passes:
-   - `client_id`
-   - `logout_uri`
-4. Cognito clears the Hosted UI session and redirects the browser back to your app
+1. Open App 1
+2. Click `Login with Cognito`
+3. Complete login in Cognito Hosted UI
+4. After App 1 shows you as authenticated, use the menu to open App 2
+5. In App 2, click `Login with Cognito`
+6. Cognito should reuse the same Hosted UI session and return you without asking for credentials again
 
-### Route summary
+If that happens, SSO is working.
 
-- `/` shows either the login screen or the authenticated user info
-- `/login` starts the OIDC authorization code flow
-- `/callback` finishes the OIDC flow after Cognito redirects back
-- `/logout` clears the local session and logs out from Cognito Hosted UI
+## What the UI does
+
+Both apps now show:
+
+- a top menu with links to `App 1` and `App 2`
+- a login or logout button
+- the current app's callback URL
+- the current app's App Client ID
+- a panel explaining the SSO behavior
+- the Cognito user claims after login
+
+This makes it easier to verify that:
+
+- both apps are using different App Clients
+- both apps are using the same Cognito login session
+
+## Important logout behavior
+
+When you click `/logout` in one app:
+
+1. the local Express session is destroyed
+2. the browser is redirected to Cognito `/logout`
+3. Cognito clears the Hosted UI session
+
+Because Cognito clears the shared Hosted UI session, that affects SSO for both apps.
+
+## Verification
+
+Code changes were syntax-checked with:
+
+```powershell
+node --check app1/server.js
+node --check app2/server.js
+node --check config.js
+node --check auth-routes.js
+node --check oidc-client.js
+node --check server-factory.js
+```
