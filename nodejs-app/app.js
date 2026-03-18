@@ -1,6 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const { Issuer, generators } = require('openid-client');
+
+loadEnvFile();
 
 const app = express();
 
@@ -21,6 +25,38 @@ if (missingEnvVars.length > 0) {
     console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     console.error('Set them before starting the app.');
     process.exit(1);
+}
+
+function loadEnvFile() {
+    const envPath = path.join(__dirname, '.env');
+
+    if (!fs.existsSync(envPath)) {
+        return;
+    }
+
+    const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        if (!trimmedLine || trimmedLine.startsWith('#')) {
+            continue;
+        }
+
+        const separatorIndex = trimmedLine.indexOf('=');
+
+        if (separatorIndex === -1) {
+            continue;
+        }
+
+        const key = trimmedLine.slice(0, separatorIndex).trim();
+        const rawValue = trimmedLine.slice(separatorIndex + 1).trim();
+        const unquotedValue = rawValue.replace(/^['"]|['"]$/g, '');
+
+        if (key && process.env[key] === undefined) {
+            process.env[key] = unquotedValue;
+        }
+    }
 }
 
 app.use(session({

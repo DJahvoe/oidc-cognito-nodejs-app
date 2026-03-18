@@ -15,7 +15,9 @@ Create or use an existing Cognito User Pool, then configure:
 
 ## 2. Required environment variables
 
-In PowerShell:
+Create `.env` from `.env.example` and fill in your Cognito values.
+
+You can still set the same values in PowerShell if you prefer:
 
 ```powershell
 $env:PORT="3000"
