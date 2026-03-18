@@ -222,6 +222,7 @@ If that happens, SSO is working.
 Both apps now show:
 
 - a top menu with links to `App 1` and `App 2`
+- a route menu with `Home`, `Public Page`, and `Protected Page`
 - a login or logout button
 - the current app's callback URL
 - the current app's App Client ID
@@ -232,6 +233,36 @@ This makes it easier to verify that:
 
 - both apps are using different App Clients
 - both apps are using the same Cognito login session
+
+## Public and protected routes
+
+Both apps now expose these example routes:
+
+- `/`: home page
+- `/public-page`: accessible with or without authentication
+- `/protected-page`: accessible only after authentication
+
+### Public page
+
+`/public-page` does not require a Cognito session.
+
+Use it to verify that:
+
+- the app can serve content before login
+- public and protected routes can coexist in the same app
+
+### Protected page
+
+`/protected-page` requires a local authenticated session.
+
+If the user is not authenticated:
+
+1. the app stores the original URL in the session
+2. the app redirects to `/login`
+3. Cognito performs authentication
+4. the callback returns the user to the original protected URL
+
+This means you can open `App 2` directly on `/protected-page` after signing into `App 1`, and Cognito SSO should return you to that protected page without prompting for credentials again.
 
 ## Important logout behavior
 

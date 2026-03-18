@@ -48,11 +48,13 @@ function createAuthRouter({ client, config }) {
 
             req.session.userInfo = userInfo;
             req.session.tokenSet = tokenSet;
+            const returnTo = req.session.returnTo || '/';
             delete req.session.nonce;
             delete req.session.state;
             delete req.session.codeVerifier;
+            delete req.session.returnTo;
 
-            res.redirect('/');
+            res.redirect(returnTo);
         } catch (error) {
             next(error);
         }

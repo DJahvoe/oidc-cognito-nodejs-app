@@ -88,6 +88,13 @@
             gap: 10px;
         }
 
+        .subnav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
         .nav-link,
         .cta {
             display: inline-flex;
@@ -111,6 +118,23 @@
             background: var(--accent);
             border-color: var(--accent);
             color: white;
+            font-weight: 700;
+        }
+
+        .subnav-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--panel-border);
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--muted);
+        }
+
+        .subnav-link.current {
+            background: white;
+            color: var(--text);
             font-weight: 700;
         }
 
@@ -247,6 +271,12 @@
                 </nav>
             </div>
 
+            <nav class="subnav" aria-label="Route switcher">
+                <% pageLinks.forEach((link) => { %>
+                    <a class="subnav-link <%= link.current ? 'current' : '' %>" href="<%= link.href %>"><%= link.label %></a>
+                <% }) %>
+            </nav>
+
             <% if (error) { %>
                 <div class="error">
                     <strong>Authentication error</strong>
@@ -293,7 +323,7 @@
                     <% if (isAuthenticated) { %>
                         You already have a local session in <strong><%= appInfo.name %></strong>. Open the other app from the menu and click <strong>Login with Cognito</strong>. Cognito should reuse the Hosted UI session and return immediately.
                     <% } else { %>
-                        Start by signing in here. Then switch to the other app from the menu and click <strong>Login with Cognito</strong>. If both apps use the same User Pool and Hosted UI domain, you should not be asked for credentials again.
+                        Start by signing in here. Then switch to the other app from the menu and click <strong>Login with Cognito</strong>. After that, open the protected page in the second app to verify SSO on an authenticated route.
                     <% } %>
                 </div>
             </article>
@@ -305,6 +335,7 @@
                     <li>Cognito Hosted UI keeps the shared login session that enables SSO.</li>
                     <li>Signing in on App 1 does not automatically sign in App 2 until App 2 redirects to Cognito.</li>
                     <li>Once App 2 redirects to Cognito, Cognito can reuse the existing session and return with a new authorization code for App 2.</li>
+                    <li>The public page works without login, while the protected page forces the full auth flow.</li>
                 </ul>
             </article>
         </section>
@@ -325,9 +356,10 @@
                 <h2>Suggested Demo Flow</h2>
                 <ol>
                     <li>Run <span class="mono">npm run start:app1</span> and <span class="mono">npm run start:app2</span> in separate terminals.</li>
+                    <li>Open the public page first to confirm that unauthenticated routes work without Cognito.</li>
                     <li>Open App 1 and click <strong>Login with Cognito</strong>.</li>
                     <li>After you return authenticated, use the top menu to open App 2.</li>
-                    <li>In App 2, click <strong>Login with Cognito</strong> again.</li>
+                    <li>In App 2, open the protected page. The app should redirect through Cognito and back.</li>
                     <li>Cognito should reuse the Hosted UI session and send you back without prompting for credentials.</li>
                 </ol>
             </article>
