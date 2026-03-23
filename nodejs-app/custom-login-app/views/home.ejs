@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appInfo.name %></title>
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #efe6dd 0%, #d9ecf0 100%);
+            --panel: rgba(255, 255, 255, 0.78);
+            --border: #d7c6ba;
+            --accent: #0c7489;
+            --accent-soft: #dbf0f5;
+            --text: #24313a;
+            --muted: #62707a;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        a { color: inherit; text-decoration: none; }
+        .page {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+        .hero, .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 26px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+        }
+        .hero-top, .actions, .nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .nav {
+            justify-content: flex-start;
+            margin-top: 18px;
+        }
+        .pill, .link-btn {
+            display: inline-flex;
+            align-items: center;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.72);
+        }
+        .pill {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.84rem;
+        }
+        .link-btn.current, .link-btn.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .kpi {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .kpi strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.94rem;
+            word-break: break-word;
+        }
+        .error {
+            margin-top: 16px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #fff0ec;
+            border: 1px solid #e7b6a8;
+            color: #8a2b12;
+        }
+        p, li { color: var(--muted); line-height: 1.6; }
+        pre {
+            margin: 0;
+            padding: 18px;
+            border-radius: 18px;
+            background: #172026;
+            color: #f1f5f9;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <span class="pill">Custom Login</span>
+                    <h1>Bring your own sign-in page</h1>
+                    <p>This demo keeps the same session-based app pattern as the Hosted UI sample, but the login form lives in your app. The app sends username and password directly to the Cognito User Pool API instead of redirecting the browser to Cognito Hosted UI.</p>
+                </div>
+                <div class="actions">
+                    <% if (isAuthenticated) { %>
+                        <a class="link-btn primary" href="/logout">Logout</a>
+                    <% } else { %>
+                        <a class="link-btn primary" href="/login">Open Login Form</a>
+                    <% } %>
+                </div>
+            </div>
+
+            <nav class="nav" aria-label="Route switcher">
+                <% pageLinks.forEach((link) => { %>
+                    <a class="link-btn <%= link.current ? 'current' : '' %>" href="<%= link.href %>"><%= link.label %></a>
+                <% }) %>
+            </nav>
+
+            <% if (error) { %>
+                <div class="error">
+                    <strong>Application error</strong>
+                    <div class="mono"><%= error %></div>
+                </div>
+            <% } %>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Runtime configuration</h2>
+                <div class="kpis">
+                    <div class="kpi">
+                        <strong>Base URL</strong>
+                        <div class="mono"><%= appInfo.baseUrl %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Auth flow</strong>
+                        <div class="mono"><%= appInfo.authFlow %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Client ID</strong>
+                        <div class="mono"><%= appInfo.clientId %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>User Pool</strong>
+                        <div class="mono"><%= appInfo.userPoolId %></div>
+                    </div>
+                </div>
+                <p>This app expects a Cognito App Client that allows direct username/password authentication. The usual Cognito Hosted UI redirect is not part of this flow.</p>
+            </article>
+
+            <article class="panel">
+                <h2>What changes compared to Hosted UI</h2>
+                <ul>
+                    <li>The login form is rendered by your own Express app.</li>
+                    <li>The server calls Cognito `InitiateAuth` and `GetUser` directly.</li>
+                    <li>You keep full control of branding and input handling.</li>
+                    <li>You do not get Hosted UI browser-based SSO automatically with this approach.</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Session state</h2>
+                <% if (isAuthenticated) { %>
+                    <p>You are authenticated in this custom-login app. The session was created after the local form successfully called Cognito.</p>
+                    <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
+                <% } else { %>
+                    <p>No local session exists yet. Open the login form, submit your Cognito username and password, and then come back here.</p>
+                <% } %>
+            </article>
+
+            <article class="panel">
+                <h2>Suggested demo flow</h2>
+                <ol>
+                    <li>Open the public page first to confirm that it works without authentication.</li>
+                    <li>Open the protected page. The app should send you to the local login form.</li>
+                    <li>Submit your Cognito username and password.</li>
+                    <li>After login, the app should return you to the protected page you originally requested.</li>
+                </ol>
+            </article>
+        </section>
+    </div>
+</body>
+</html>

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app1/server.js",
     "start:app1": "node app1/server.js",
-    "start:app2": "node app2/server.js"
+    "start:app2": "node app2/server.js",
+    "start:custom-login": "node custom-login-app/server.js"
   },
   "author": "",
   "license": "ISC",

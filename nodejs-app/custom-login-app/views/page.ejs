@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= pageTitle %> | <%= appInfo.name %></title>
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #f0e6dd 0%, #e0eef7 100%);
+            --panel: rgba(255, 255, 255, 0.82);
+            --border: #d2c3b8;
+            --accent: #0c7489;
+            --accent-soft: #d9eff3;
+            --text: #24313a;
+            --muted: #62707a;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        a { color: inherit; text-decoration: none; }
+        .page {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+        .hero, .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 26px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+        }
+        .hero-top, .nav, .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .nav {
+            justify-content: flex-start;
+            margin-top: 18px;
+        }
+        .pill, .link-btn {
+            display: inline-flex;
+            align-items: center;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.72);
+        }
+        .pill {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.84rem;
+        }
+        .link-btn.current, .link-btn.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            font-weight: 700;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .kpi {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .kpi strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .mono {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.94rem;
+            word-break: break-word;
+        }
+        p, li { color: var(--muted); line-height: 1.6; }
+        pre {
+            margin: 0;
+            padding: 18px;
+            border-radius: 18px;
+            background: #172026;
+            color: #f1f5f9;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <span class="pill"><%= pageEyebrow %></span>
+                    <h1><%= pageTitle %></h1>
+                    <p><%= pageSummary %></p>
+                </div>
+                <div class="actions">
+                    <% if (isAuthenticated) { %>
+                        <a class="link-btn primary" href="/logout">Logout</a>
+                    <% } else { %>
+                        <a class="link-btn primary" href="/login">Login</a>
+                    <% } %>
+                </div>
+            </div>
+
+            <nav class="nav" aria-label="Route switcher">
+                <% pageLinks.forEach((link) => { %>
+                    <a class="link-btn <%= link.current ? 'current' : '' %>" href="<%= link.href %>"><%= link.label %></a>
+                <% }) %>
+            </nav>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Access rules</h2>
+                <div class="kpis">
+                    <div class="kpi">
+                        <strong>Route</strong>
+                        <div class="mono"><%= pageLinks.find((link) => link.current).href %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Access mode</strong>
+                        <div class="mono"><%= accessMode %></div>
+                    </div>
+                    <div class="kpi">
+                        <strong>Session state</strong>
+                        <div class="mono"><%= isAuthenticated ? 'Authenticated' : 'Anonymous' %></div>
+                    </div>
+                </div>
+
+                <% bodySections.forEach((section) => { %>
+                    <div>
+                        <h2><%= section.heading %></h2>
+                        <% section.paragraphs.forEach((paragraph) => { %>
+                            <p><%= paragraph %></p>
+                        <% }) %>
+                    </div>
+                <% }) %>
+            </article>
+
+            <article class="panel">
+                <h2>Route details</h2>
+                <ul>
+                    <% detailItems.forEach((item) => { %>
+                        <li><strong><%= item.label %>:</strong> <%= item.value %></li>
+                    <% }) %>
+                </ul>
+            </article>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Session snapshot</h2>
+                <% if (isAuthenticated) { %>
+                    <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
+                <% } else { %>
+                    <p>No local session exists yet.</p>
+                <% } %>
+            </article>
+
+            <article class="panel">
+                <h2>App context</h2>
+                <ul>
+                    <li><strong>Base URL:</strong> <span class="mono"><%= appInfo.baseUrl %></span></li>
+                    <li><strong>Auth flow:</strong> <span class="mono"><%= appInfo.authFlow %></span></li>
+                    <li><strong>Client ID:</strong> <span class="mono"><%= appInfo.clientId %></span></li>
+                    <li><strong>Region:</strong> <span class="mono"><%= appInfo.region %></span></li>
+                </ul>
+            </article>
+        </section>
+    </div>
+</body>
+</html>
