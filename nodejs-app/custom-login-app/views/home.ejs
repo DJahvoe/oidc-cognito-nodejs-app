@@ -126,7 +126,7 @@
                 <div>
                     <span class="pill">Custom Login Entry</span>
                     <h1>Bring your own page without losing SSO</h1>
-                    <p>This demo keeps a branded local <span class="mono">/login</span> page, but the actual sign-in still happens through Cognito Hosted UI. That preserves the Cognito browser session and keeps SSO compatible with <span class="mono">app1</span> and <span class="mono">app2</span>. The app also performs a silent session check on page load, so it can adopt or clear the local session automatically.</p>
+                    <p>This demo keeps a branded local <span class="mono">/login</span> page, but the actual sign-in still happens through Cognito Hosted UI. For the interactive path, the app now builds a direct Cognito <span class="mono">/login</span> URL instead of starting at <span class="mono">/oauth2/authorize</span>. That still preserves the Cognito browser session and keeps SSO compatible with <span class="mono">app1</span> and <span class="mono">app2</span>. The app also performs a silent session check on page load, so it can adopt or clear the local session automatically.</p>
                 </div>
                 <div class="actions">
                     <% if (isAuthenticated) { %>
@@ -172,13 +172,15 @@
                         <div class="mono"><%= appInfo.issuer %></div>
                     </div>
                 </div>
-                <p>This app expects a normal Cognito Hosted UI and authorization-code setup. The difference is only that your own page starts the browser redirect, instead of dropping users into Cognito immediately.</p>
+                <p>This app still uses the authorization-code callback and token exchange. The difference is only that your own page starts the browser redirect to Cognito <span class="mono">/login</span> directly for the interactive sign-in step.</p>
             </article>
 
             <article class="panel">
                 <h2>What changes compared to App 1 and App 2</h2>
                 <ul>
                     <li>You keep your own branded entry page at <span class="mono">/login</span>.</li>
+                    <li>The interactive sign-in path goes straight to Cognito <span class="mono">/login</span>, while silent checks still use <span class="mono">/oauth2/authorize?prompt=none</span>.</li>
+                    <li>The <span class="mono">/programmatic-demo</span> route uses server-side <span class="mono">fetch</span> against Cognito <span class="mono">/login</span> and then forces a token request to show the failure path.</li>
                     <li>The app can pass a username hint before the redirect to Cognito.</li>
                     <li>Cognito still handles the credential page, MFA, and browser session.</li>
                     <li>Because Cognito still handles the sign-in step, SSO remains compatible with the other Hosted UI apps.</li>

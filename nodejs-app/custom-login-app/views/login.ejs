@@ -125,7 +125,7 @@
         <section class="panel">
             <span class="pill">Custom Sign-in Page</span>
             <h1>Keep your own page, keep Cognito SSO</h1>
-            <p>This page is rendered by your app. When you continue, the app redirects the browser to Cognito's authorization endpoint. That means Cognito still owns the actual password step and can reuse its existing browser session for SSO.</p>
+            <p>This page is rendered by your app. When you continue, the app builds a Cognito <span class="mono">/login</span> URL directly and redirects the browser there. Cognito still owns the actual password step, so it can reuse its existing browser session for SSO.</p>
 
             <% if (error) { %>
                 <div class="error">
@@ -139,13 +139,15 @@
                     Username or email
                     <input type="text" name="username" value="<%= formValues.username %>" autocomplete="username">
                 </label>
-                <button type="submit">Continue with Cognito</button>
+                <button type="submit">Continue to Cognito /login</button>
             </form>
 
             <div class="actions">
                 <a class="link-btn secondary" href="/">Back to Home</a>
                 <a class="link-btn secondary" href="/public-page">Open Public Page</a>
-                <a class="link-btn secondary" href="/login/direct">Skip hint and continue</a>
+                <a class="link-btn secondary" href="/programmatic-demo">Run fetch /login demo</a>
+                <a class="link-btn secondary" href="/login/direct">Use /login without hint</a>
+                <a class="link-btn secondary" href="/login/authorize">Compare /oauth2/authorize</a>
             </div>
         </section>
 
@@ -158,7 +160,7 @@
                 <li><strong>App Client ID:</strong> <span class="mono"><%= appInfo.clientId %></span></li>
                 <li><strong>Callback URL:</strong> <span class="mono"><%= appInfo.redirectUri %></span></li>
             </ul>
-            <p>Your page stays local and branded, but the browser still goes through Cognito Hosted UI for the real sign-in step. That is the key reason SSO stays compatible with <span class="mono">app1</span> and <span class="mono">app2</span>.</p>
+            <p>Your page stays local and branded, but the browser still goes through Cognito Hosted UI for the real sign-in step. This demo starts at <span class="mono">/login</span> directly for interactive sign-in, while silent session checks still use <span class="mono">/oauth2/authorize?prompt=none</span>.</p>
         </section>
     </div>
 </body>

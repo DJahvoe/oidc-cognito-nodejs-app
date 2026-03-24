@@ -38,18 +38,61 @@ What those docs mean for this app:
 This app uses:
 
 - a local branded `/login` page in your app
-- Cognito `/oauth2/authorize` through `openid-client`
-- Cognito `/login` behind the authorize flow for the actual credential entry
+- Cognito `/login` directly for the interactive sign-in step
+- Cognito `/oauth2/authorize` for the silent `prompt=none` session check
 - Cognito `/logout` for shared logout
 
-The local login page can collect a username hint and pass it into the authorization request as `login_hint`, but the actual password step remains on Cognito.
+The local login page can collect a username hint and pass it into the Cognito `/login` request as `login_hint`, but the actual password step remains on Cognito.
+
+## Why `/login` works here
+
+AWS documents that the managed login `/login` endpoint:
+
+- is a redirect destination of `/oauth2/authorize`
+- supports the same request parameters as the authorization endpoint
+- can be accessed directly
+
+AWS also says the recommended practice is to originate user sessions from `/oauth2/authorize`.
+
+This demo intentionally uses `/login` directly only for the interactive sign-in path so you can see how it behaves. The callback, code exchange, token validation, and shared Cognito browser session still work the same way.
+
+## Programmatic `/login` demonstration
+
+This app now also includes a server-side probe route:
+
+- `/programmatic-demo`
+
+That route performs a server-side `fetch` experiment against Cognito:
+
+- `GET /login`
+- an intentionally unsupported `POST /login`
+- an intentionally forced `POST /oauth2/token`
+
+and then shows:
+
+- the exact request URLs
+- the HTTP status for each step
+- response headers like `Location` and `Set-Cookie`
+- short body previews
+
+The purpose of this route is to demonstrate the boundary clearly:
+
+- yes, your server can call Cognito `/login` with `fetch`
+- no, that still does not create a Cognito browser SSO session for the user
+- no, you still do not get a valid token flow from managed login without the real browser callback round trip
+
+Why not:
+
+- the response is returned to your server, not to the user's browser session on the Cognito domain
+- Cognito cookies in that response are not automatically installed as browser cookies for the user
+- AWS documents that managed login webpages are user-interactive browser pages and are not a supported programmatic authentication model
 
 ## Flow
 
 1. User opens `/login` in your app
 2. Your app renders your own branded page
 3. User optionally enters username or email
-4. Your app redirects the browser to Cognito authorization
+4. Your app builds a Cognito `/login` URL and redirects the browser there
 5. Cognito either:
    - reuses the existing Hosted UI session and immediately redirects back, or
    - shows the Cognito sign-in page
@@ -116,7 +159,9 @@ This app should use its **own** App Client, but under the same User Pool and Hos
 
 - `/`: home page
 - `/login`: custom branded login entry page
-- `/login/direct`: skip the hint page and go straight to Cognito authorize
+- `/login/direct`: skip the hint page and go straight to Cognito `/login`
+- `/login/authorize`: comparison route that starts from `/oauth2/authorize`
+- `/programmatic-demo`: server-side probe of Cognito `/login`
 - `/callback`: Cognito callback
 - `/public-page`: page accessible without authentication
 - `/protected-page`: page accessible only after authentication
