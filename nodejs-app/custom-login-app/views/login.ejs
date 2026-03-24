@@ -123,45 +123,42 @@
 <body>
     <div class="shell">
         <section class="panel">
-            <span class="pill">Custom Sign-in Form</span>
-            <h1>Use your own login page</h1>
-            <p>This page is rendered by your app, not Cognito Hosted UI. When you submit the form, the server calls the Cognito User Pool API directly with the configured auth flow.</p>
+            <span class="pill">Custom Sign-in Page</span>
+            <h1>Keep your own page, keep Cognito SSO</h1>
+            <p>This page is rendered by your app. When you continue, the app redirects the browser to Cognito's authorization endpoint. That means Cognito still owns the actual password step and can reuse its existing browser session for SSO.</p>
 
             <% if (error) { %>
                 <div class="error">
-                    <strong>Login failed</strong>
+                    <strong>Sign-in start failed</strong>
                     <div class="mono"><%= error %></div>
                 </div>
             <% } %>
 
             <form method="post" action="/login">
                 <label>
-                    Username
-                    <input type="text" name="username" value="<%= formValues.username %>" autocomplete="username" required>
+                    Username or email
+                    <input type="text" name="username" value="<%= formValues.username %>" autocomplete="username">
                 </label>
-                <label>
-                    Password
-                    <input type="password" name="password" autocomplete="current-password" required>
-                </label>
-                <button type="submit">Sign in with Cognito</button>
+                <button type="submit">Continue with Cognito</button>
             </form>
 
             <div class="actions">
                 <a class="link-btn secondary" href="/">Back to Home</a>
                 <a class="link-btn secondary" href="/public-page">Open Public Page</a>
+                <a class="link-btn secondary" href="/login/direct">Skip hint and continue</a>
             </div>
         </section>
 
         <section class="panel">
-            <h2>Configuration used by this form</h2>
+            <h2>How this preserves SSO</h2>
             <ul>
                 <li><strong>Base URL:</strong> <span class="mono"><%= appInfo.baseUrl %></span></li>
-                <li><strong>Region:</strong> <span class="mono"><%= appInfo.region %></span></li>
-                <li><strong>User Pool ID:</strong> <span class="mono"><%= appInfo.userPoolId %></span></li>
+                <li><strong>Issuer:</strong> <span class="mono"><%= appInfo.issuer %></span></li>
+                <li><strong>Domain:</strong> <span class="mono"><%= appInfo.domain %></span></li>
                 <li><strong>App Client ID:</strong> <span class="mono"><%= appInfo.clientId %></span></li>
-                <li><strong>Auth flow:</strong> <span class="mono"><%= appInfo.authFlow %></span></li>
+                <li><strong>Callback URL:</strong> <span class="mono"><%= appInfo.redirectUri %></span></li>
             </ul>
-            <p>For this demo to work, the Cognito App Client must allow direct username/password authentication. If Cognito returns MFA or password-reset challenges, the app will show a clear error because those flows are not implemented here.</p>
+            <p>Your page stays local and branded, but the browser still goes through Cognito Hosted UI for the real sign-in step. That is the key reason SSO stays compatible with <span class="mono">app1</span> and <span class="mono">app2</span>.</p>
         </section>
     </div>
 </body>

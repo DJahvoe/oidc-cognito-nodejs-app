@@ -124,7 +124,7 @@
                     <% if (isAuthenticated) { %>
                         <a class="link-btn primary" href="/logout">Logout</a>
                     <% } else { %>
-                        <a class="link-btn primary" href="/login">Login</a>
+                        <a class="link-btn primary" href="/login">Open Custom Login Page</a>
                     <% } %>
                 </div>
             </div>
@@ -188,9 +188,9 @@
                 <h2>App context</h2>
                 <ul>
                     <li><strong>Base URL:</strong> <span class="mono"><%= appInfo.baseUrl %></span></li>
-                    <li><strong>Auth flow:</strong> <span class="mono"><%= appInfo.authFlow %></span></li>
+                    <li><strong>Callback URL:</strong> <span class="mono"><%= appInfo.redirectUri %></span></li>
                     <li><strong>Client ID:</strong> <span class="mono"><%= appInfo.clientId %></span></li>
-                    <li><strong>Region:</strong> <span class="mono"><%= appInfo.region %></span></li>
+                    <li><strong>Issuer:</strong> <span class="mono"><%= appInfo.issuer %></span></li>
                 </ul>
             </article>
         </section>

@@ -124,15 +124,15 @@
         <section class="hero">
             <div class="hero-top">
                 <div>
-                    <span class="pill">Custom Login</span>
-                    <h1>Bring your own sign-in page</h1>
-                    <p>This demo keeps the same session-based app pattern as the Hosted UI sample, but the login form lives in your app. The app sends username and password directly to the Cognito User Pool API instead of redirecting the browser to Cognito Hosted UI.</p>
+                    <span class="pill">Custom Login Entry</span>
+                    <h1>Bring your own page without losing SSO</h1>
+                    <p>This demo keeps a branded local <span class="mono">/login</span> page, but the actual sign-in still happens through Cognito Hosted UI. That preserves the Cognito browser session and keeps SSO compatible with <span class="mono">app1</span> and <span class="mono">app2</span>.</p>
                 </div>
                 <div class="actions">
                     <% if (isAuthenticated) { %>
                         <a class="link-btn primary" href="/logout">Logout</a>
                     <% } else { %>
-                        <a class="link-btn primary" href="/login">Open Login Form</a>
+                        <a class="link-btn primary" href="/login">Open Custom Login Page</a>
                     <% } %>
                 </div>
             </div>
@@ -160,28 +160,28 @@
                         <div class="mono"><%= appInfo.baseUrl %></div>
                     </div>
                     <div class="kpi">
-                        <strong>Auth flow</strong>
-                        <div class="mono"><%= appInfo.authFlow %></div>
+                        <strong>Callback URL</strong>
+                        <div class="mono"><%= appInfo.redirectUri %></div>
                     </div>
                     <div class="kpi">
                         <strong>Client ID</strong>
                         <div class="mono"><%= appInfo.clientId %></div>
                     </div>
                     <div class="kpi">
-                        <strong>User Pool</strong>
-                        <div class="mono"><%= appInfo.userPoolId %></div>
+                        <strong>Issuer</strong>
+                        <div class="mono"><%= appInfo.issuer %></div>
                     </div>
                 </div>
-                <p>This app expects a Cognito App Client that allows direct username/password authentication. The usual Cognito Hosted UI redirect is not part of this flow.</p>
+                <p>This app expects a normal Cognito Hosted UI and authorization-code setup. The difference is only that your own page starts the browser redirect, instead of dropping users into Cognito immediately.</p>
             </article>
 
             <article class="panel">
-                <h2>What changes compared to Hosted UI</h2>
+                <h2>What changes compared to App 1 and App 2</h2>
                 <ul>
-                    <li>The login form is rendered by your own Express app.</li>
-                    <li>The server calls Cognito `InitiateAuth` and `GetUser` directly.</li>
-                    <li>You keep full control of branding and input handling.</li>
-                    <li>You do not get Hosted UI browser-based SSO automatically with this approach.</li>
+                    <li>You keep your own branded entry page at <span class="mono">/login</span>.</li>
+                    <li>The app can pass a username hint before the redirect to Cognito.</li>
+                    <li>Cognito still handles the credential page, MFA, and browser session.</li>
+                    <li>Because Cognito still handles the sign-in step, SSO remains compatible with the other Hosted UI apps.</li>
                 </ul>
             </article>
         </section>
@@ -190,10 +190,10 @@
             <article class="panel">
                 <h2>Session state</h2>
                 <% if (isAuthenticated) { %>
-                    <p>You are authenticated in this custom-login app. The session was created after the local form successfully called Cognito.</p>
+                    <p>You are authenticated in this custom-login app. The session was created after your local page redirected the browser through Cognito and the callback returned here.</p>
                     <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
                 <% } else { %>
-                    <p>No local session exists yet. Open the login form, submit your Cognito username and password, and then come back here.</p>
+                    <p>No local session exists yet. Open the custom login page and continue to Cognito to begin the sign-in flow.</p>
                 <% } %>
             </article>
 
@@ -201,8 +201,9 @@
                 <h2>Suggested demo flow</h2>
                 <ol>
                     <li>Open the public page first to confirm that it works without authentication.</li>
-                    <li>Open the protected page. The app should send you to the local login form.</li>
-                    <li>Submit your Cognito username and password.</li>
+                    <li>Open the protected page. The app should send you to the local custom login page.</li>
+                    <li>Type a username hint if you want, then continue to Cognito.</li>
+                    <li>If you already have a Cognito Hosted UI session from <span class="mono">app1</span> or <span class="mono">app2</span>, Cognito should bounce you back quickly.</li>
                     <li>After login, the app should return you to the protected page you originally requested.</li>
                 </ol>
             </article>

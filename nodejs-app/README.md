@@ -17,10 +17,10 @@ Each app should use its own Cognito App Client. That is the recommended setup fo
 
 - `app1/server.js`: starts App 1
 - `app2/server.js`: starts App 2
-- `custom-login-app/server.js`: starts a custom Cognito login form demo
+- `custom-login-app/server.js`: starts a branded custom login entry page demo
 - `app1/.env.example`: sample config for App 1
 - `app2/.env.example`: sample config for App 2
-- `custom-login-app/.env.example`: sample config for the custom-login demo
+- `custom-login-app/.env.example`: sample config for the custom-login SSO demo
 - `config.js`: loads app-specific `.env` files and builds runtime config
 - `auth-routes.js`: shared `/login`, `/callback`, and `/logout` routes
 - `oidc-client.js`: shared OIDC discovery and logout URL logic
@@ -218,7 +218,7 @@ Then open:
 
 - Custom login app: `http://localhost:5000`
 
-This app uses a local login form instead of redirecting to Cognito Hosted UI. See `custom-login-app/README.md` for the setup details and tradeoffs.
+This app keeps a local branded login page, but still redirects to Cognito Hosted UI for the actual sign-in step so SSO remains compatible with `app1` and `app2`. See `custom-login-app/README.md` for the AWS docs and flow details.
 
 ## How to test SSO
 

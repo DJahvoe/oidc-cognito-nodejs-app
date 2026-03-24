@@ -3,3 +3,4 @@
 app1/.env
 app2/.env
 custom-login-app/.env
+custom-login-app/.env.passwordauth

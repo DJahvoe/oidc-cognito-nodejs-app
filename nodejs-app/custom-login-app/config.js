@@ -6,15 +6,16 @@ loadEnvFile(path.join(__dirname, '.env'));
 const port = Number(process.env.PORT || 5000);
 const baseUrl = normalizeUrl(process.env.BASE_URL || `http://localhost:${port}`);
 const config = {
-    appName: 'Custom Login App',
+    appName: 'Custom Login SSO App',
     port,
     baseUrl,
-    region: process.env.COGNITO_REGION,
-    userPoolId: process.env.COGNITO_USER_POOL_ID,
-    clientId: process.env.COGNITO_CLIENT_ID,
-    clientSecret: process.env.COGNITO_CLIENT_SECRET,
-    authFlow: process.env.COGNITO_AUTH_FLOW || 'USER_PASSWORD_AUTH',
-    sessionSecret: process.env.SESSION_SECRET || 'dev-only-change-me-custom-login',
+    redirectUri: `${baseUrl}/callback`,
+    sessionSecret: process.env.SESSION_SECRET || 'dev-only-change-me-custom-login-sso',
+    cognitoIssuer: process.env.COGNITO_ISSUER,
+    cognitoClientId: process.env.COGNITO_CLIENT_ID,
+    cognitoClientSecret: process.env.COGNITO_CLIENT_SECRET,
+    cognitoDomain: process.env.COGNITO_DOMAIN,
+    scopes: process.env.COGNITO_SCOPES || 'openid email profile',
 };
 
 validateConfig(config);
@@ -62,8 +63,9 @@ function validateConfig(currentConfig) {
     }
 
     const requiredSettings = [
-        ['COGNITO_REGION', currentConfig.region],
-        ['COGNITO_CLIENT_ID', currentConfig.clientId],
+        ['COGNITO_ISSUER', currentConfig.cognitoIssuer],
+        ['COGNITO_CLIENT_ID', currentConfig.cognitoClientId],
+        ['COGNITO_DOMAIN', currentConfig.cognitoDomain],
     ];
 
     const missingSettings = requiredSettings

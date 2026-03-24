@@ -1,8 +1,9 @@
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const { generators } = require('openid-client');
 const config = require('./config');
-const { loginWithPassword, getCurrentUser, globalSignOut } = require('./cognito-auth');
+const { createOidcClient, buildLogoutUrl } = require('../oidc-client');
 
 const app = express();
 
@@ -28,10 +29,11 @@ function buildViewModel(req, overrides = {}) {
         appInfo: {
             name: config.appName,
             baseUrl: config.baseUrl,
-            authFlow: config.authFlow,
-            clientId: config.clientId,
-            region: config.region,
-            userPoolId: config.userPoolId || 'not provided',
+            redirectUri: config.redirectUri,
+            issuer: config.cognitoIssuer,
+            clientId: config.cognitoClientId,
+            domain: config.cognitoDomain,
+            scopes: config.scopes,
         },
         pageLinks: [
             { href: '/', label: 'Home', current: req.path === '/' },
@@ -56,16 +58,36 @@ function requireAuthentication(req, res, next) {
     res.redirect('/login');
 }
 
+function beginAuthorization(req, res, client, loginHint) {
+    const nonce = generators.nonce();
+    const state = generators.state();
+    const codeVerifier = generators.codeVerifier();
+    const codeChallenge = generators.codeChallenge(codeVerifier);
+
+    req.session.nonce = nonce;
+    req.session.state = state;
+    req.session.codeVerifier = codeVerifier;
+
+    const authorizationParams = {
+        scope: config.scopes,
+        state,
+        nonce,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+    };
+
+    if (loginHint) {
+        authorizationParams.login_hint = loginHint;
+    }
+
+    res.redirect(client.authorizationUrl(authorizationParams));
+}
+
 app.get('/', (req, res) => {
     res.render('home', buildViewModel(req));
 });
 
 app.get('/login', (req, res) => {
-    if (req.session.userInfo) {
-        res.redirect('/');
-        return;
-    }
-
     res.render('login', buildViewModel(req, {
         formValues: {
             username: '',
@@ -73,33 +95,67 @@ app.get('/login', (req, res) => {
     }));
 });
 
-app.post('/login', async (req, res) => {
-    const username = (req.body.username || '').trim();
-    const password = req.body.password || '';
-
-    if (!username || !password) {
-        res.status(400).render('login', buildViewModel(req, {
-            error: 'Username and password are required.',
-            formValues: { username },
-        }));
+app.get('/login/direct', (req, res, next) => {
+    if (!req.app.locals.client) {
+        next(new Error('OIDC client is not initialized yet.'));
         return;
     }
 
     try {
-        const authResult = await loginWithPassword(config, username, password);
-        const userInfo = await getCurrentUser(config, authResult.AccessToken);
+        beginAuthorization(req, res, req.app.locals.client);
+    } catch (error) {
+        next(error);
+    }
+});
 
-        req.session.tokens = authResult;
+app.post('/login', (req, res, next) => {
+    const username = (req.body.username || '').trim();
+
+    if (!req.app.locals.client) {
+        next(new Error('OIDC client is not initialized yet.'));
+        return;
+    }
+
+    try {
+        beginAuthorization(req, res, req.app.locals.client, username || undefined);
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/callback', async (req, res, next) => {
+    try {
+        const client = req.app.locals.client;
+
+        if (!client) {
+            throw new Error('OIDC client is not initialized yet.');
+        }
+
+        const params = client.callbackParams(req);
+        const tokenSet = await client.callback(
+            config.redirectUri,
+            params,
+            {
+                nonce: req.session.nonce,
+                state: req.session.state,
+                code_verifier: req.session.codeVerifier,
+            }
+        );
+
+        const userInfo = await client.userinfo(tokenSet.access_token);
+
+        req.session.tokenSet = tokenSet;
         req.session.userInfo = userInfo;
 
         const returnTo = req.session.returnTo || '/';
+        delete req.session.nonce;
+        delete req.session.state;
+        delete req.session.codeVerifier;
         delete req.session.returnTo;
+
         res.redirect(returnTo);
     } catch (error) {
-        res.status(401).render('login', buildViewModel(req, {
-            error: error.message,
-            formValues: { username },
-        }));
+        next(error);
     }
 });
 
@@ -107,7 +163,7 @@ app.get('/public-page', (req, res) => {
     res.render('page', buildViewModel(req, {
         pageTitle: 'Public Page',
         pageEyebrow: 'Open Route',
-        pageSummary: 'This page is available without signing in. It is the equivalent of public content in a custom-login app.',
+        pageSummary: 'This page is available before login. It proves the app can expose public content while still using Cognito Hosted UI for SSO-aware sign-in.',
         accessMode: 'Public',
         detailItems: [
             {
@@ -116,19 +172,19 @@ app.get('/public-page', (req, res) => {
             },
             {
                 label: 'Use case',
-                value: 'Landing pages, docs, pricing, or content visible before login.',
+                value: 'Marketing, documentation, pricing, or pre-login explanation pages.',
             },
             {
                 label: 'Suggested test',
-                value: 'Open this route first to confirm the app loads before Cognito auth is involved.',
+                value: 'Open this route first. Then use the custom /login page to begin Cognito sign-in.',
             },
         ],
         bodySections: [
             {
-                heading: 'How this differs from Hosted UI',
+                heading: 'How this keeps your own page',
                 paragraphs: [
-                    'The page is rendered entirely by your own app. Cognito is not involved until the user submits the custom login form.',
-                    'This is useful when you want full control over branding and form layout instead of redirecting users to Cognito Hosted UI.',
+                    'The page and the /login route are both fully yours. Cognito only takes over at the moment you redirect to the authorize endpoint.',
+                    'Because the actual sign-in still happens on Cognito managed login, you keep the Cognito browser session and SSO behavior used by App 1 and App 2.',
                 ],
             },
         ],
@@ -139,7 +195,7 @@ app.get('/protected-page', requireAuthentication, (req, res) => {
     res.render('page', buildViewModel(req, {
         pageTitle: 'Protected Page',
         pageEyebrow: 'Protected Route',
-        pageSummary: 'This page requires a local session created after your custom login form authenticates against Cognito.',
+        pageSummary: 'This page requires a local session, but the session is created through Cognito Hosted UI after the custom landing page starts the authorize flow.',
         accessMode: 'Authenticated only',
         detailItems: [
             {
@@ -148,40 +204,34 @@ app.get('/protected-page', requireAuthentication, (req, res) => {
             },
             {
                 label: 'Guard behavior',
-                value: 'The app stores the original path and sends the user to the local /login page.',
+                value: 'The app stores the original path, shows the local login page, then sends the browser to Cognito.',
             },
             {
                 label: 'Suggested test',
-                value: 'Open this route directly in a new browser session and confirm you return here after login.',
+                value: 'Sign in on App 1 first, then open this page here. Cognito should reuse its existing session.',
             },
         ],
         bodySections: [
             {
                 heading: 'What happens here',
                 paragraphs: [
-                    'The app checks req.session.userInfo before rendering. If that session object is missing, the route redirects to the local login page instead of Cognito Hosted UI.',
-                    'After successful authentication, the app restores the original route from req.session.returnTo and sends the user back to this protected page.',
+                    'Unauthenticated users are redirected to the local /login page first, not directly to Cognito.',
+                    'After the user continues from your branded page, Cognito either prompts for credentials or silently reuses its existing hosted session and then sends the browser back to this protected page.',
                 ],
             },
         ],
     }));
 });
 
-app.get('/logout', async (req, res, next) => {
-    try {
-        await globalSignOut(config, req.session.tokens && req.session.tokens.AccessToken);
+app.get('/logout', (req, res, next) => {
+    req.session.destroy((error) => {
+        if (error) {
+            next(error);
+            return;
+        }
 
-        req.session.destroy((error) => {
-            if (error) {
-                next(error);
-                return;
-            }
-
-            res.redirect('/');
-        });
-    } catch (error) {
-        next(error);
-    }
+        res.redirect(buildLogoutUrl(config));
+    });
 });
 
 app.use((error, req, res, next) => {
@@ -197,6 +247,17 @@ app.use((error, req, res, next) => {
     }));
 });
 
-app.listen(config.port, () => {
-    console.log(`${config.appName} listening on ${config.baseUrl}`);
-});
+async function start() {
+    try {
+        app.locals.client = await createOidcClient(config);
+        app.listen(config.port, () => {
+            console.log(`${config.appName} listening on ${config.baseUrl}`);
+            console.log(`${config.appName} callback URL: ${config.redirectUri}`);
+        });
+    } catch (error) {
+        console.error(`Failed to start ${config.appName}:`, error);
+        process.exit(1);
+    }
+}
+
+start();
