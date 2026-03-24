@@ -33,6 +33,7 @@ Example:
 
 ```env
 VITE_APP_NAME=Vue Cognito OIDC Demo
+VITE_PORT=5173
 VITE_COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxxx
 VITE_COGNITO_CLIENT_ID=your-public-spa-client-id
 VITE_COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
@@ -44,10 +45,12 @@ Important:
 - do **not** put `COGNITO_CLIENT_SECRET` in a browser SPA
 - create a Cognito app client without a secret
 - enable authorization code grant
+- `VITE_PORT` controls the Vite dev server port
+- if you change `VITE_PORT`, update the Cognito callback and sign-out URLs to match it exactly
 
 ## Cognito app-client settings
 
-For Vite local development, use:
+For Vite local development, if `VITE_PORT=5173`, use:
 
 - callback URL: `http://localhost:5173/auth/callback`
 - sign-out URL: `http://localhost:5173`
@@ -82,7 +85,7 @@ npm run dev
 Then open:
 
 ```text
-http://localhost:5173
+http://localhost:<VITE_PORT>
 ```
 
 ## Routes
