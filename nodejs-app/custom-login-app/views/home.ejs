@@ -126,7 +126,7 @@
                 <div>
                     <span class="pill">Custom Login Entry</span>
                     <h1>Bring your own page without losing SSO</h1>
-                    <p>This demo keeps a branded local <span class="mono">/login</span> page, but the actual sign-in still happens through Cognito Hosted UI. That preserves the Cognito browser session and keeps SSO compatible with <span class="mono">app1</span> and <span class="mono">app2</span>.</p>
+                    <p>This demo keeps a branded local <span class="mono">/login</span> page, but the actual sign-in still happens through Cognito Hosted UI. That preserves the Cognito browser session and keeps SSO compatible with <span class="mono">app1</span> and <span class="mono">app2</span>. The app also performs a silent session check on page load, so it can adopt or clear the local session automatically.</p>
                 </div>
                 <div class="actions">
                     <% if (isAuthenticated) { %>
@@ -182,6 +182,7 @@
                     <li>The app can pass a username hint before the redirect to Cognito.</li>
                     <li>Cognito still handles the credential page, MFA, and browser session.</li>
                     <li>Because Cognito still handles the sign-in step, SSO remains compatible with the other Hosted UI apps.</li>
+                    <li>On page load, the app silently checks for an existing Cognito session so you do not need to press Login manually after opening it.</li>
                 </ul>
             </article>
         </section>
@@ -193,7 +194,7 @@
                     <p>You are authenticated in this custom-login app. The session was created after your local page redirected the browser through Cognito and the callback returned here.</p>
                     <pre><%= JSON.stringify(userInfo, null, 2) %></pre>
                 <% } else { %>
-                    <p>No local session exists yet. Open the custom login page and continue to Cognito to begin the sign-in flow.</p>
+                    <p>No local session exists yet. If Cognito already has a valid Hosted UI session from another app, refreshing or opening this app should silently establish the local session.</p>
                 <% } %>
             </article>
 
@@ -201,10 +202,10 @@
                 <h2>Suggested demo flow</h2>
                 <ol>
                     <li>Open the public page first to confirm that it works without authentication.</li>
-                    <li>Open the protected page. The app should send you to the local custom login page.</li>
-                    <li>Type a username hint if you want, then continue to Cognito.</li>
-                    <li>If you already have a Cognito Hosted UI session from <span class="mono">app1</span> or <span class="mono">app2</span>, Cognito should bounce you back quickly.</li>
-                    <li>After login, the app should return you to the protected page you originally requested.</li>
+                    <li>Sign in on <span class="mono">app1</span> first.</li>
+                    <li>Open this app. It should silently sync with Cognito and create the local session without pressing Login.</li>
+                    <li>Open the protected page to confirm the session is already in place.</li>
+                    <li>If no Cognito session exists, the protected page will still send you to the branded local login page first.</li>
                 </ol>
             </article>
         </section>

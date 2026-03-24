@@ -56,6 +56,15 @@ The local login page can collect a username hint and pass it into the authorizat
 6. Cognito redirects back to `/callback`
 7. Your app exchanges the code, fetches user info, stores the local session, and redirects to the original page
 
+## Automatic session sync
+
+This app also performs a silent Cognito session check with `prompt=none` on page load.
+
+That means:
+
+- if you sign in on `app1`, opening this app should create the local session automatically
+- if you sign out through Cognito in another app, refreshing this app should clear the local session automatically
+
 ## Why SSO still works
 
 Because the actual sign-in still happens on Cognito Hosted UI, Cognito can keep using the same browser-based session cookie as `app1` and `app2`.

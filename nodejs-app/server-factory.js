@@ -4,6 +4,8 @@ const session = require('express-session');
 const createAuthRouter = require('./auth-routes');
 const { createOidcClient } = require('./oidc-client');
 
+const SESSION_SYNC_MAX_AGE_MS = 15000;
+
 async function startServer(config) {
     const app = express();
 
@@ -66,6 +68,31 @@ async function startServer(config) {
         req.session.returnTo = req.originalUrl;
         res.redirect('/login');
     }
+
+    function synchronizeManagedLoginSession(req, res, next) {
+        if (!shouldAttemptSessionSync(req)) {
+            next();
+            return;
+        }
+
+        req.session.returnTo = req.originalUrl;
+        res.redirect('/session-sync');
+    }
+
+    function shouldAttemptSessionSync(req) {
+        if (req.method !== 'GET') {
+            return false;
+        }
+
+        if (['/login', '/logout', '/callback', '/session-sync'].includes(req.path)) {
+            return false;
+        }
+
+        const lastSessionSyncAt = req.session.lastSessionSyncAt || 0;
+        return Date.now() - lastSessionSyncAt > SESSION_SYNC_MAX_AGE_MS;
+    }
+
+    app.use(synchronizeManagedLoginSession);
 
     app.get('/', (req, res) => {
         renderHome(req, res);

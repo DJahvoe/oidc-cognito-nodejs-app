@@ -5,6 +5,8 @@ const { generators } = require('openid-client');
 const config = require('./config');
 const { createOidcClient, buildLogoutUrl } = require('../oidc-client');
 
+const SESSION_SYNC_MAX_AGE_MS = 15000;
+
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
@@ -58,7 +60,30 @@ function requireAuthentication(req, res, next) {
     res.redirect('/login');
 }
 
-function beginAuthorization(req, res, client, loginHint) {
+function synchronizeManagedLoginSession(req, res, next) {
+    if (!shouldAttemptSessionSync(req)) {
+        next();
+        return;
+    }
+
+    req.session.returnTo = req.originalUrl;
+    res.redirect('/session-sync');
+}
+
+function shouldAttemptSessionSync(req) {
+    if (req.method !== 'GET') {
+        return false;
+    }
+
+    if (['/login', '/login/direct', '/logout', '/callback', '/session-sync'].includes(req.path)) {
+        return false;
+    }
+
+    const lastSessionSyncAt = req.session.lastSessionSyncAt || 0;
+    return Date.now() - lastSessionSyncAt > SESSION_SYNC_MAX_AGE_MS;
+}
+
+function beginAuthorization(req, res, client, options = {}) {
     const nonce = generators.nonce();
     const state = generators.state();
     const codeVerifier = generators.codeVerifier();
@@ -74,14 +99,21 @@ function beginAuthorization(req, res, client, loginHint) {
         nonce,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+        ...options,
     };
-
-    if (loginHint) {
-        authorizationParams.login_hint = loginHint;
-    }
 
     res.redirect(client.authorizationUrl(authorizationParams));
 }
+
+function clearTransientAuthState(req) {
+    delete req.session.nonce;
+    delete req.session.state;
+    delete req.session.codeVerifier;
+    delete req.session.returnTo;
+    delete req.session.authIntent;
+}
+
+app.use(synchronizeManagedLoginSession);
 
 app.get('/', (req, res) => {
     res.render('home', buildViewModel(req));
@@ -102,6 +134,7 @@ app.get('/login/direct', (req, res, next) => {
     }
 
     try {
+        req.session.authIntent = 'login';
         beginAuthorization(req, res, req.app.locals.client);
     } catch (error) {
         next(error);
@@ -117,7 +150,26 @@ app.post('/login', (req, res, next) => {
     }
 
     try {
-        beginAuthorization(req, res, req.app.locals.client, username || undefined);
+        req.session.authIntent = 'login';
+        beginAuthorization(req, res, req.app.locals.client, {
+            login_hint: username || undefined,
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+app.get('/session-sync', (req, res, next) => {
+    if (!req.app.locals.client) {
+        next(new Error('OIDC client is not initialized yet.'));
+        return;
+    }
+
+    try {
+        req.session.authIntent = 'sync';
+        beginAuthorization(req, res, req.app.locals.client, {
+            prompt: 'none',
+        });
     } catch (error) {
         next(error);
     }
@@ -126,12 +178,29 @@ app.post('/login', (req, res, next) => {
 app.get('/callback', async (req, res, next) => {
     try {
         const client = req.app.locals.client;
+        const authIntent = req.session.authIntent || 'login';
 
         if (!client) {
             throw new Error('OIDC client is not initialized yet.');
         }
 
         const params = client.callbackParams(req);
+
+        if (params.error) {
+            if (authIntent === 'sync' && params.error === 'login_required') {
+                delete req.session.userInfo;
+                delete req.session.tokenSet;
+                req.session.lastSessionSyncAt = Date.now();
+                const returnTo = req.session.returnTo || '/';
+                clearTransientAuthState(req);
+                res.redirect(returnTo);
+                return;
+            }
+
+            clearTransientAuthState(req);
+            throw new Error(params.error_description || params.error || 'Authentication failed.');
+        }
+
         const tokenSet = await client.callback(
             config.redirectUri,
             params,
@@ -146,12 +215,10 @@ app.get('/callback', async (req, res, next) => {
 
         req.session.tokenSet = tokenSet;
         req.session.userInfo = userInfo;
+        req.session.lastSessionSyncAt = Date.now();
 
         const returnTo = req.session.returnTo || '/';
-        delete req.session.nonce;
-        delete req.session.state;
-        delete req.session.codeVerifier;
-        delete req.session.returnTo;
+        clearTransientAuthState(req);
 
         res.redirect(returnTo);
     } catch (error) {

@@ -226,10 +226,21 @@ This app keeps a local branded login page, but still redirects to Cognito Hosted
 2. Click `Login with Cognito`
 3. Complete login in Cognito Hosted UI
 4. After App 1 shows you as authenticated, use the menu to open App 2
-5. In App 2, click `Login with Cognito`
-6. Cognito should reuse the same Hosted UI session and return you without asking for credentials again
+5. App 2 should silently check the Cognito session on page load
+6. If Cognito still has a valid session, App 2 should show you as authenticated without pressing `Login with Cognito`
 
 If that happens, SSO is working.
+
+## Automatic session sync
+
+The Hosted UI apps now perform a silent Cognito session check with `prompt=none` on page load.
+
+That means:
+
+- if you sign in on `app1`, opening `app2` or `custom-login-app` should establish the local session automatically
+- if you sign out through Cognito in one app, refreshing another app should clear its local session automatically
+
+This sync is still browser-based and Cognito-managed. The apps are not pushing logout events to each other directly; they re-check the Cognito session when you load or refresh a page.
 
 ## What the UI does
 

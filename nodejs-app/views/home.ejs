@@ -321,9 +321,9 @@
 
                 <div class="callout">
                     <% if (isAuthenticated) { %>
-                        You already have a local session in <strong><%= appInfo.name %></strong>. Open the other app from the menu and click <strong>Login with Cognito</strong>. Cognito should reuse the Hosted UI session and return immediately.
+                        You already have a local session in <strong><%= appInfo.name %></strong>. Open the other app from the menu and it should silently sync against Cognito on arrival. If the Cognito session is still active, the local session will appear without pressing Login.
                     <% } else { %>
-                        Start by signing in here. Then switch to the other app from the menu and click <strong>Login with Cognito</strong>. After that, open the protected page in the second app to verify SSO on an authenticated route.
+                        Start by signing in here. Then switch to the other app from the menu. The app should silently check the Cognito session and sign you in locally without an extra click. After that, open the protected page in the second app to verify SSO on an authenticated route.
                     <% } %>
                 </div>
             </article>
@@ -333,8 +333,9 @@
                 <ul>
                     <li>Each Express app keeps its own local session.</li>
                     <li>Cognito Hosted UI keeps the shared login session that enables SSO.</li>
-                    <li>Signing in on App 1 does not automatically sign in App 2 until App 2 redirects to Cognito.</li>
-                    <li>Once App 2 redirects to Cognito, Cognito can reuse the existing session and return with a new authorization code for App 2.</li>
+                    <li>When you open App 2, it now performs a silent Cognito session check with <span class="mono">prompt=none</span>.</li>
+                    <li>If Cognito already has a valid session, the app creates or refreshes the local session automatically.</li>
+                    <li>If Cognito no longer has a valid session, the app clears the local session on the next page load.</li>
                     <li>The public page works without login, while the protected page forces the full auth flow.</li>
                 </ul>
             </article>
@@ -359,8 +360,8 @@
                     <li>Open the public page first to confirm that unauthenticated routes work without Cognito.</li>
                     <li>Open App 1 and click <strong>Login with Cognito</strong>.</li>
                     <li>After you return authenticated, use the top menu to open App 2.</li>
-                    <li>In App 2, open the protected page. The app should redirect through Cognito and back.</li>
-                    <li>Cognito should reuse the Hosted UI session and send you back without prompting for credentials.</li>
+                    <li>App 2 should silently sync with Cognito on page load and show you as authenticated without pressing Login.</li>
+                    <li>Open the protected page in App 2 to confirm the local session is already in place.</li>
                 </ol>
             </article>
         </section>
