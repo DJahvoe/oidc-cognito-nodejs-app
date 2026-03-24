@@ -14,7 +14,7 @@ if (!authority || !clientId || !cognitoDomain) {
 export const appInfo = Object.freeze({
   appName: import.meta.env.VITE_APP_NAME || 'Vue Cognito OIDC Demo',
   baseUrl,
-  redirectUri: `${baseUrl}/auth/callback`,
+  redirectUri: `${baseUrl}/callback`,
   authority,
   clientId,
   cognitoDomain,

@@ -27,7 +27,7 @@ const profilePreview = computed(() => JSON.stringify(authState.user?.profile || 
         <ul>
           <li>Vue route guard checks local user state</li>
           <li>If missing, `signinRedirect()` starts the OIDC flow</li>
-          <li>Cognito sends the browser to `/auth/callback`</li>
+          <li>Cognito sends the browser to `/callback`</li>
           <li>The app restores the original route after callback processing</li>
         </ul>
       </article>

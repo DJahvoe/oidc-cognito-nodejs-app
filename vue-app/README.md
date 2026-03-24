@@ -52,7 +52,7 @@ Important:
 
 For Vite local development, if `VITE_PORT=5173`, use:
 
-- callback URL: `http://localhost:5173/auth/callback`
+- callback URL: `http://localhost:5173/callback`
 - sign-out URL: `http://localhost:5173`
 - OAuth flow: `Authorization code grant`
 - scopes: `openid email profile`
@@ -65,7 +65,7 @@ Use the same user pool and Hosted UI domain as your other Cognito apps if you wa
 2. Public routes render immediately
 3. Protected routes trigger `signinRedirect()`
 4. Cognito authenticates the user
-5. Cognito sends the browser back to `/auth/callback`
+5. Cognito sends the browser back to `/callback`
 6. The app processes the callback and stores the user in browser storage
 7. The protected route renders
 
@@ -93,7 +93,7 @@ http://localhost:<VITE_PORT>
 - `/`: home page
 - `/public-page`: route that anyone can open
 - `/protected-page`: route that requires authentication
-- `/auth/callback`: Cognito redirect callback
+- `/callback`: Cognito redirect callback
 
 ## AWS references
 
