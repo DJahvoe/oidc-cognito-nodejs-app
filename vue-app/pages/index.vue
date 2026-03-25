@@ -1,19 +1,17 @@
 <script setup>
-import { computed } from 'vue'
-import { appInfo, authState, getDisplayName, isAuthenticated } from '../auth/oidc'
-
-const authenticated = computed(() => isAuthenticated())
-const profilePreview = computed(() => JSON.stringify(authState.user?.profile || null, null, 2))
-const displayName = computed(() => getDisplayName())
+const { appInfo, authenticated, displayName, user } = useOidcAuth()
+const profilePreview = computed(() => JSON.stringify(user.value?.profile || null, null, 2))
 </script>
 
 <template>
   <section class="view-card">
-    <span class="eyebrow">Home</span>
-    <h2>Simple Vue SPA with Cognito OIDC</h2>
+    <span class="eyebrow">Main Menu</span>
+    <h2>Nuxt app with Cognito Hosted UI</h2>
     <p>
-      This app is a browser-side OIDC sample. The protected route triggers a Cognito redirect,
-      the callback route finishes the login, and the user profile stays in browser storage.
+      This page is the main menu after login. Anonymous access to <span class="mono">/</span>
+      triggers the Nuxt route middleware, which redirects the browser to Cognito Hosted UI.
+      After the user authenticates, Cognito returns to <span class="mono">/callback</span>
+      and the app lands here.
     </p>
 
     <div class="sub-grid">
@@ -33,7 +31,7 @@ const displayName = computed(() => getDisplayName())
           Signed in as <strong>{{ displayName }}</strong>.
         </p>
         <p v-else>
-          No Cognito user is currently stored in the SPA.
+          No Cognito user is currently stored in the Nuxt app.
         </p>
       </article>
     </div>

@@ -1,18 +1,20 @@
-# Vue Cognito OIDC Demo
+# Nuxt Cognito OIDC Demo
 
-This folder contains a simple Vue 3 SPA that signs in with Amazon Cognito using:
+This folder contains a Nuxt app that signs in with Amazon Cognito using:
 
 - authorization code flow
 - PKCE
 - browser redirects
 
+The app runs with `ssr: false`, so the authentication flow behaves like a client-side SPA while still using Nuxt pages and route middleware.
+
 It is intentionally a public browser app, so it does **not** use a client secret.
 
 ## What it includes
 
-- `Vue 3`
-- `Vue Router`
+- `Nuxt`
 - `oidc-client-ts`
+- global route middleware
 - Cognito login redirect
 - Cognito callback handling
 - public route
@@ -32,25 +34,26 @@ Start from:
 Example:
 
 ```env
-VITE_APP_NAME=Vue Cognito OIDC Demo
-VITE_PORT=5173
-VITE_COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxxx
-VITE_COGNITO_CLIENT_ID=your-public-spa-client-id
-VITE_COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
-VITE_COGNITO_SCOPES=openid email profile
+NUXT_PORT=5173
+NUXT_PUBLIC_APP_NAME=Nuxt Cognito OIDC Demo
+NUXT_PUBLIC_COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_xxxxxxxxx
+NUXT_PUBLIC_COGNITO_CLIENT_ID=your-public-spa-client-id
+NUXT_PUBLIC_COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
+NUXT_PUBLIC_COGNITO_SCOPES=openid email profile
 ```
 
 Important:
 
-- do **not** put `COGNITO_CLIENT_SECRET` in a browser SPA
+- do **not** put `COGNITO_CLIENT_SECRET` in a browser app
 - create a Cognito app client without a secret
 - enable authorization code grant
-- `VITE_PORT` controls the Vite dev server port
-- if you change `VITE_PORT`, update the Cognito callback and sign-out URLs to match it exactly
+- `NUXT_PORT` controls the Nuxt dev server port
+- if you change `NUXT_PORT`, update the Cognito callback and sign-out URLs to match it exactly
+- the config also accepts the older `VITE_*` variables as a fallback while you transition
 
 ## Cognito app-client settings
 
-For Vite local development, if `VITE_PORT=5173`, use:
+For local development, if `NUXT_PORT=5173`, use:
 
 - callback URL: `http://localhost:5173/callback`
 - sign-out URL: `http://localhost:5173`
@@ -61,13 +64,13 @@ Use the same user pool and Hosted UI domain as your other Cognito apps if you wa
 
 ## How it works
 
-1. User opens the Vue SPA
-2. Public routes render immediately
-3. Protected routes trigger `signinRedirect()`
-4. Cognito authenticates the user
-5. Cognito sends the browser back to `/callback`
-6. The app processes the callback and stores the user in browser storage
-7. The protected route renders
+1. User opens the Nuxt app
+2. If the user opens `/` or `/protected-page` without a session, the global route middleware triggers `signinRedirect()`
+3. Cognito Hosted UI authenticates the user
+4. Cognito sends the browser back to `/callback`
+5. The callback page processes the authorization code and stores the user in browser storage
+6. The app redirects to the original route, with `/` acting as the main menu after login
+7. `public-page` remains available without authentication
 
 ## Logout
 
@@ -85,15 +88,23 @@ npm run dev
 Then open:
 
 ```text
-http://localhost:<VITE_PORT>
+http://localhost:<NUXT_PORT>
 ```
 
 ## Routes
 
-- `/`: home page
+- `/`: main menu after login; redirects anonymous users to Cognito Hosted UI
 - `/public-page`: route that anyone can open
 - `/protected-page`: route that requires authentication
 - `/callback`: Cognito redirect callback
+
+## Files
+
+- `app.vue`: top-level app shell
+- `nuxt.config.ts`: Nuxt runtime and port configuration
+- `composables/useOidcAuth.js`: Cognito OIDC client logic
+- `middleware/auth.global.js`: global auth redirect behavior
+- `pages/`: Nuxt routes
 
 ## AWS references
 

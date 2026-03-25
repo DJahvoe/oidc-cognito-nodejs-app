@@ -40,10 +40,6 @@ a {
   text-decoration: none;
 }
 
-#app {
-  width: 100%;
-}
-
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -140,7 +136,7 @@ a {
   background: rgba(255, 255, 255, 0.66);
 }
 
-.nav-pill.router-link-active,
+.router-link-active,
 .primary-btn {
   background: var(--accent);
   border-color: var(--accent);

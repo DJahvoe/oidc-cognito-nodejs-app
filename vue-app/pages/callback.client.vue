@@ -1,20 +1,16 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { handleSigninCallback } from '../auth/oidc'
-
-const router = useRouter()
 const status = ref('Completing Cognito sign-in...')
 const details = ref('')
+const { handleCallback } = useOidcAuth()
 
 onMounted(async () => {
   try {
-    const returnTo = await handleSigninCallback()
+    const returnTo = await handleCallback()
     status.value = 'Sign-in complete. Redirecting...'
-    await router.replace(returnTo)
-  } catch (error) {
+    await navigateTo(returnTo, { replace: true })
+  } catch (currentError) {
     status.value = 'Callback handling failed.'
-    details.value = error instanceof Error ? error.message : String(error)
+    details.value = currentError instanceof Error ? currentError.message : String(currentError)
   }
 })
 </script>
@@ -24,18 +20,18 @@ onMounted(async () => {
     <span class="eyebrow">Callback</span>
     <h2>{{ status }}</h2>
     <p>
-      This route is only here to finish the Cognito authorization code flow and restore
-      the original Vue route.
+      This page only exists to finish the Cognito authorization code flow and return
+      the user to the Nuxt route they originally asked for.
     </p>
 
     <div class="sub-grid">
       <article class="sub-card">
         <h3>What happens here</h3>
         <ul>
-          <li>The SPA reads the authorization code from the browser URL</li>
+          <li>The app reads the authorization code from the browser URL</li>
           <li>`oidc-client-ts` validates state and PKCE data</li>
           <li>The user is written into browser storage</li>
-          <li>The router replaces this URL with the original destination</li>
+          <li>The app replaces this URL with the original destination</li>
         </ul>
       </article>
 

@@ -1,9 +1,6 @@
 <script setup>
-import { computed } from 'vue'
-import { authState, getDisplayName } from '../auth/oidc'
-
-const displayName = computed(() => getDisplayName())
-const profilePreview = computed(() => JSON.stringify(authState.user?.profile || null, null, 2))
+const { displayName, user } = useOidcAuth()
+const profilePreview = computed(() => JSON.stringify(user.value?.profile || null, null, 2))
 </script>
 
 <template>
@@ -11,8 +8,9 @@ const profilePreview = computed(() => JSON.stringify(authState.user?.profile || 
     <span class="eyebrow">Protected Route</span>
     <h2>This page requires authentication</h2>
     <p>
-      If you reached this page, the router guard already verified that a valid Cognito user
-      exists locally. Without that user, the guard redirects the browser to Cognito first.
+      If you reached this page, the global route middleware already verified that a valid
+      Cognito user exists locally. Without that user, the middleware redirects the browser
+      to Cognito before this page renders.
     </p>
 
     <div class="sub-grid">
@@ -25,10 +23,10 @@ const profilePreview = computed(() => JSON.stringify(authState.user?.profile || 
       <article class="sub-card">
         <h3>Protected flow</h3>
         <ul>
-          <li>Vue route guard checks local user state</li>
+          <li>Nuxt route middleware checks local user state</li>
           <li>If missing, `signinRedirect()` starts the OIDC flow</li>
-          <li>Cognito sends the browser to `/callback`</li>
-          <li>The app restores the original route after callback processing</li>
+          <li>Cognito sends the browser to <span class="mono">/callback</span></li>
+          <li>The callback page restores the original route after processing</li>
         </ul>
       </article>
     </div>
