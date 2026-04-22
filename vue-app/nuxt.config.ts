@@ -18,15 +18,10 @@ export default defineNuxtConfig({
       cognitoClientId: process.env.NUXT_PUBLIC_COGNITO_CLIENT_ID || process.env.VITE_COGNITO_CLIENT_ID || '',
       cognitoDomain: normalizeDomain(process.env.NUXT_PUBLIC_COGNITO_DOMAIN || process.env.VITE_COGNITO_DOMAIN || ''),
       cognitoScopes: process.env.NUXT_PUBLIC_COGNITO_SCOPES || process.env.VITE_COGNITO_SCOPES || 'openid email profile',
-      logoutUrl: normalizeUrl(process.env.NUXT_PUBLIC_LOGOUT_URL || process.env.VITE_LOGOUT_URL || 'http://localhost:5000/logout'),
     },
   },
 })
 
 function normalizeDomain(value: string) {
   return value.replace(/^https?:\/\//, '').replace(/\/$/, '')
-}
-
-function normalizeUrl(value: string) {
-  return value.replace(/\/$/, '')
 }

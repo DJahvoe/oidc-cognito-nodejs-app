@@ -30,8 +30,8 @@ onMounted(() => {
         <p>
           Opening the main menu requires authentication. If the user is not logged in,
           the route middleware redirects the browser to Cognito Hosted UI, Cognito
-          returns to <span class="mono">/callback</span>, and the app lands on the
-          main menu after sign-in.
+          returns to <span class="mono">{{ appInfo.redirectUri }}</span>, and the app
+          lands on the main menu after sign-in.
         </p>
       </div>
 
@@ -86,9 +86,9 @@ onMounted(() => {
       </article>
 
       <article class="info-card">
-        <span class="card-label">Callback URL</span>
+        <span class="card-label">App URL</span>
         <strong>{{ appInfo.redirectUri }}</strong>
-        <p>Register this exact URL in the Cognito app client.</p>
+        <p>Use this URL for callback, default redirect, and post-logout return.</p>
       </article>
 
       <article class="info-card">

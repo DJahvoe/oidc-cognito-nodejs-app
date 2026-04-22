@@ -1,6 +1,7 @@
 <script setup>
-const { appInfo, authenticated, displayName, user } = useOidcAuth()
+const { appInfo, authenticated, displayName, logoutDebug, user } = useOidcAuth()
 const profilePreview = computed(() => JSON.stringify(user.value || null, null, 2))
+const logoutDebugPreview = computed(() => JSON.stringify(logoutDebug.value, null, 2))
 </script>
 
 <template>
@@ -10,7 +11,7 @@ const profilePreview = computed(() => JSON.stringify(user.value || null, null, 2
     <p>
       This page is the main menu after login. Anonymous access to <span class="mono">/</span>
       triggers the Nuxt route middleware, which redirects the browser to Cognito Hosted UI.
-      After the user authenticates, Cognito returns to <span class="mono">/callback</span>
+      After the user authenticates, Cognito returns to <span class="mono">{{ appInfo.redirectUri }}</span>
       and the app lands here.
     </p>
 
@@ -19,8 +20,8 @@ const profilePreview = computed(() => JSON.stringify(user.value || null, null, 2
         <h3>What to configure in Cognito</h3>
         <ul>
           <li>Allowed callback URL: <span class="mono">{{ appInfo.redirectUri }}</span></li>
-          <li>Vue app sign-in origin: <span class="mono">{{ appInfo.baseUrl }}</span></li>
-          <li>Shared logout endpoint: <span class="mono">{{ appInfo.logoutUrl }}</span></li>
+          <li>Default redirect URL: <span class="mono">{{ appInfo.redirectUri }}</span></li>
+          <li>Allowed sign-out URL: <span class="mono">{{ appInfo.baseUrl }}</span></li>
           <li>OAuth flow: Authorization code grant</li>
           <li>Scopes: <span class="mono">{{ appInfo.scopes }}</span></li>
         </ul>
@@ -50,6 +51,18 @@ const profilePreview = computed(() => JSON.stringify(user.value || null, null, 2
       <article class="sub-card">
         <h3>Profile snapshot</h3>
         <pre>{{ profilePreview }}</pre>
+      </article>
+    </div>
+
+    <div class="sub-grid">
+      <article class="sub-card">
+        <h3>Logout Debug</h3>
+        <p>
+          Compare this exact URL with the Cognito app client settings. The
+          <span class="mono">client_id</span> and <span class="mono">logout_uri</span>
+          must match exactly.
+        </p>
+        <pre>{{ logoutDebugPreview }}</pre>
       </article>
     </div>
   </section>

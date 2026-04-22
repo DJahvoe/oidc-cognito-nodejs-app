@@ -3,11 +3,38 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  if (to.path === '/callback' || to.path === '/public-page') {
+  if (to.path === '/public-page') {
     return
   }
 
-  const { authenticated, initializeAuth, signin } = useOidcAuth()
+  const {
+    authenticated,
+    initializeAuth,
+    signin,
+    handleCallback,
+    consumePostLogoutRelogin,
+  } = useOidcAuth()
+
+  if (isOidcCallbackRequest(to)) {
+    try {
+      const returnTo = await handleCallback()
+
+      if (returnTo !== to.fullPath) {
+        return navigateTo(returnTo, { replace: true })
+      }
+    } catch {
+      return
+    }
+
+    return
+  }
+
+  const postLogoutReturnTo = consumePostLogoutRelogin()
+
+  if (postLogoutReturnTo) {
+    await signin(postLogoutReturnTo)
+    return abortNavigation()
+  }
 
   await initializeAuth()
 
@@ -16,3 +43,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return abortNavigation()
   }
 })
+
+function isOidcCallbackRequest(to) {
+  return Boolean(
+    typeof to.query.code === 'string' ||
+    typeof to.query.error === 'string',
+  )
+}

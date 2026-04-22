@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 
 let userManager
+const POST_LOGOUT_RELOGIN_KEY = 'oidc-post-logout-relogin'
 
 export function useOidcAuth() {
   console.log('[useOidcAuth] useOidcAuth called')
@@ -16,8 +17,7 @@ export function useOidcAuth() {
     const result = {
       appName: runtimeConfig.public.appName || 'Nuxt Cognito OIDC Demo',
       baseUrl,
-      redirectUri: baseUrl ? `${baseUrl}/callback` : '/callback',
-      logoutUrl: normalizeUrl(runtimeConfig.public.logoutUrl || 'http://localhost:5000/logout'),
+      redirectUri: baseUrl || '/',
       authority: runtimeConfig.public.cognitoIssuer,
       clientId: runtimeConfig.public.cognitoClientId,
       cognitoDomain: normalizeDomain(runtimeConfig.public.cognitoDomain),
@@ -29,6 +29,18 @@ export function useOidcAuth() {
   })
 
   const authenticated = computed(() => Boolean(user.value && !user.value.expired))
+  const logoutDebug = computed(() => {
+    const result = {
+      appBaseUrl: appInfo.value.baseUrl,
+      clientId: appInfo.value.clientId,
+      cognitoDomain: appInfo.value.cognitoDomain,
+      logoutUrl: appInfo.value.baseUrl ? buildLogoutUrl(appInfo.value) : '',
+      scopes: appInfo.value.scopes,
+    }
+
+    console.log('[useOidcAuth] logoutDebug computed returning', result)
+    return result
+  })
   const displayName = computed(() => {
     if (!user.value) {
       console.log('[useOidcAuth] displayName computed returning Anonymous')
@@ -138,7 +150,7 @@ export function useOidcAuth() {
   async function signout() {
     console.log('[useOidcAuth] signout called', {
       importMetaClient: import.meta.client,
-      logoutUrl: appInfo.value.logoutUrl,
+      baseUrl: appInfo.value.baseUrl,
     })
     if (!import.meta.client) {
       console.log('[useOidcAuth] signout returning early because import.meta.client is false')
@@ -149,8 +161,10 @@ export function useOidcAuth() {
     user.value = null
     ready.value = true
     await getUserManager().removeUser()
-    console.log('[useOidcAuth] signout exiting via redirect', { logoutUrl: appInfo.value.logoutUrl })
-    window.location.assign(appInfo.value.logoutUrl)
+    markPostLogoutRelogin(`${window.location.pathname}${window.location.search}`)
+    const logoutUrl = buildLogoutUrl(appInfo.value)
+    console.log('[useOidcAuth] signout exiting via redirect', { logoutUrl })
+    window.location.assign(logoutUrl)
   }
 
   function clearError() {
@@ -167,12 +181,14 @@ export function useOidcAuth() {
     loading,
     error,
     authenticated,
+    logoutDebug,
     displayName,
     initializeAuth,
     signin,
     handleCallback,
     signout,
     clearError,
+    consumePostLogoutRelogin,
   }
 }
 
@@ -183,11 +199,44 @@ function normalizeDomain(value) {
   return result
 }
 
-function normalizeUrl(value) {
-  console.log('[useOidcAuth] normalizeUrl called', { value })
-  const result = String(value || '').replace(/\/$/, '')
-  console.log('[useOidcAuth] normalizeUrl returning', { result })
+function buildLogoutUrl(appInfo) {
+  console.log('[useOidcAuth] buildLogoutUrl called', { appInfo })
+  const logoutUrl = new URL(`https://${appInfo.cognitoDomain}/logout`)
+  logoutUrl.searchParams.set('client_id', appInfo.clientId)
+  logoutUrl.searchParams.set('logout_uri', appInfo.baseUrl)
+  const result = logoutUrl.toString()
+  console.log('[useOidcAuth] buildLogoutUrl returning', { result })
   return result
+}
+
+function markPostLogoutRelogin(returnTo) {
+  console.log('[useOidcAuth] markPostLogoutRelogin called', { returnTo })
+  if (!import.meta.client) {
+    console.log('[useOidcAuth] markPostLogoutRelogin returning early because import.meta.client is false')
+    return
+  }
+
+  window.sessionStorage.setItem(POST_LOGOUT_RELOGIN_KEY, returnTo)
+  console.log('[useOidcAuth] markPostLogoutRelogin completed')
+}
+
+function consumePostLogoutRelogin() {
+  console.log('[useOidcAuth] consumePostLogoutRelogin called')
+  if (!import.meta.client) {
+    console.log('[useOidcAuth] consumePostLogoutRelogin returning null because import.meta.client is false')
+    return null
+  }
+
+  const returnTo = window.sessionStorage.getItem(POST_LOGOUT_RELOGIN_KEY)
+
+  if (!returnTo) {
+    console.log('[useOidcAuth] consumePostLogoutRelogin returning null because no flag exists')
+    return null
+  }
+
+  window.sessionStorage.removeItem(POST_LOGOUT_RELOGIN_KEY)
+  console.log('[useOidcAuth] consumePostLogoutRelogin returning', { returnTo })
+  return returnTo
 }
 
 function formatError(value) {
