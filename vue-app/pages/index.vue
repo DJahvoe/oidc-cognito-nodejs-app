@@ -1,6 +1,6 @@
 <script setup>
 const { appInfo, authenticated, displayName, user } = useOidcAuth()
-const profilePreview = computed(() => JSON.stringify(user.value?.profile || null, null, 2))
+const profilePreview = computed(() => JSON.stringify(user.value || null, null, 2))
 </script>
 
 <template>
@@ -19,7 +19,8 @@ const profilePreview = computed(() => JSON.stringify(user.value?.profile || null
         <h3>What to configure in Cognito</h3>
         <ul>
           <li>Allowed callback URL: <span class="mono">{{ appInfo.redirectUri }}</span></li>
-          <li>Allowed sign-out URL: <span class="mono">{{ appInfo.baseUrl }}</span></li>
+          <li>Vue app sign-in origin: <span class="mono">{{ appInfo.baseUrl }}</span></li>
+          <li>Shared logout endpoint: <span class="mono">{{ appInfo.logoutUrl }}</span></li>
           <li>OAuth flow: Authorization code grant</li>
           <li>Scopes: <span class="mono">{{ appInfo.scopes }}</span></li>
         </ul>

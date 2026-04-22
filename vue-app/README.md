@@ -40,6 +40,7 @@ NUXT_PUBLIC_COGNITO_ISSUER=https://cognito-idp.ap-northeast-1.amazonaws.com/ap-n
 NUXT_PUBLIC_COGNITO_CLIENT_ID=your-public-spa-client-id
 NUXT_PUBLIC_COGNITO_DOMAIN=your-domain.auth.ap-northeast-1.amazoncognito.com
 NUXT_PUBLIC_COGNITO_SCOPES=openid email profile
+NUXT_PUBLIC_LOGOUT_URL=http://localhost:5000/logout
 ```
 
 Important:
@@ -48,7 +49,8 @@ Important:
 - create a Cognito app client without a secret
 - enable authorization code grant
 - `NUXT_PORT` controls the Nuxt dev server port
-- if you change `NUXT_PORT`, update the Cognito callback and sign-out URLs to match it exactly
+- if you change `NUXT_PORT`, update the Cognito callback URL to match it exactly
+- `NUXT_PUBLIC_LOGOUT_URL` defaults to the shared custom-login app logout route on `http://localhost:5000/logout`
 - the config also accepts the older `VITE_*` variables as a fallback while you transition
 
 ## Cognito app-client settings
@@ -56,11 +58,11 @@ Important:
 For local development, if `NUXT_PORT=5173`, use:
 
 - callback URL: `http://localhost:5173/callback`
-- sign-out URL: `http://localhost:5173`
+- shared logout route for the Vue app: `http://localhost:5000/logout`
 - OAuth flow: `Authorization code grant`
 - scopes: `openid email profile`
 
-Use the same user pool and Hosted UI domain as your other Cognito apps if you want Cognito Hosted UI SSO across them.
+Use the same user pool and Hosted UI domain as your other Cognito apps if you want Cognito Hosted UI SSO across them. The Vue app now clears its local OIDC state and then redirects to the custom-login app's logout route, which performs the Cognito Hosted UI logout on `localhost:5000`.
 
 ## How it works
 
@@ -74,7 +76,7 @@ Use the same user pool and Hosted UI domain as your other Cognito apps if you wa
 
 ## Logout
 
-This sample uses a manual redirect to Cognito `/logout` instead of library-driven RP logout because Cognito expects `logout_uri` on its managed logout endpoint.
+This sample clears the SPA's local OIDC state and then redirects to `NUXT_PUBLIC_LOGOUT_URL`, which defaults to `http://localhost:5000/logout`. That shared route is responsible for redirecting the browser to Cognito `/logout`.
 
 ## Run it
 
